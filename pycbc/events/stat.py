@@ -1602,6 +1602,82 @@ class ExpFitSGPSDSTFgBgNormBBHStatistic(ExpFitSGPSDFgBgNormBBHStatistic):
                                                  max_chirp_mass=None, **kwargs)
         self.get_newsnr = ranking.get_newsnr_sgveto_psdvar_scaled_threshold
 
+class PlaceHolder(PhaseTDExpFitSGStatistic):
+    """Statistic combining exponential noise model with signal histogram PDF
+    adding the sine-Gaussian veto to the single detector ranking, 
+    
+    iDQ vetoes are used to rerank instead of veto
+    """
+
+    def __init__(self, files=None, ifos=None, **kwargs):
+        self.veto_file = [f for f in files if f.split('.')[-1] == 'xml']
+        assert len(self.veto_file) == 1
+        self.veto_file = self.veto_file[0]
+        hdf_files = [f for f in files if f.split('.')[-1] != 'xml'] 
+        assert len(files) - len(hdf_files) == 1
+        PhaseTDExpFitSGStatistic.__init__(self, files=hdf_files, ifos=ifos,
+                                           **kwargs)
+        parsed_attrs = [f.split('-') for f in self.files.keys()]
+        self.bg_ifos_idq = [at[0] for at in parsed_attrs if
+                       (len(at) == 2 and at[1] == 'idq_ts_reference')]
+        if not len(self.bg_ifos_idq):
+            raise RuntimeError("None of the statistic files has the required "
+                               "attribute called {ifo}-idq_ts_reference !")
+        if not len(self.bg_ifos_idq) == len(self.bg_ifos):
+            raise RuntimeError("Number of iDQ timeseries files must match bulk files ")
+        self.idq_val_by_time= {}
+        for i in self.bg_ifos_idq:
+            self.idq_val_by_time[i] = self.assign_idq_val(i)
+
+    def assign_idq_val(self, ifo):
+        ref_file = self.files[ifo+'-idq_ts_reference']
+        # somehow make an array called idq_pairs, consisting of ordered pairs [time,idq_val]
+        # maybe something along the lines of the following
+        times = ref_file['times'][:]
+        idq_vals = ref_file['idq_vals'][:]
+        idq_pairs=numpy.transpose([times,idq_vals])
+        return idq_pairs
+
+    def find_idq_val(self, trigs):
+        """Get idq values for a specific ifo and times"""
+        try:
+            time = trigs['end_time']
+            ifo = trigs.ifo
+        except AttributeError:
+            time = trigs['end_time']
+            assert len(self.ifos) == 1
+            # Should be exactly one ifo provided
+            ifo = self.ifos[0]
+        # idq_val_by_time is a dictionary of arrays of ordered pairs of [time, idq_val]
+        # indexed by ifo
+        idqi = numpy.zeroes(len(trigs))
+        for (i,t) in enumerate(time):
+            idqi[i] = [ q[1] for q in self.idq_val_by_time[ifo] if q[0]==t ][0]
+        return idqi
+               
+
+    def lognoiserate(self, trigs):
+        """Calculate the log noise rate density over single-ifo newsnr
+        Read in single trigger information, make the newsnr statistic
+        and rescale by the fitted coefficients alpha and rate and the idq likelihood
+        """
+        
+        alphai, ratei, thresh = self.find_fits(trigs)
+        idqi = self.find_idq_val(trigs)
+        newsnr = self.get_newsnr(trigs)
+        time = trigs['end_time']
+        ratei = numpy.ones(len(time))*ratei
+                
+        
+        # alphai is constant of proportionality between single-ifo newsnr and
+        #   negative log noise likelihood in given template
+        # ratei is rate of trigs in given template compared to average
+        # thresh is stat threshold used in given ifo
+        
+        lognoisel = - alphai * (newsnr - thresh) + numpy.log(alphai) + \
+                      numpy.log(ratei) + numpy.log(idqi)
+        return numpy.array(lognoisel, ndmin=1, dtype=numpy.float32)
+
 
 statistic_dict = {
     'newsnr': NewSNRStatistic,
