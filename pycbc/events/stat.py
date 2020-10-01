@@ -1602,7 +1602,7 @@ class ExpFitSGPSDSTFgBgNormBBHStatistic(ExpFitSGPSDFgBgNormBBHStatistic):
                                                  max_chirp_mass=None, **kwargs)
         self.get_newsnr = ranking.get_newsnr_sgveto_psdvar_scaled_threshold
 
-class PlaceHolder(PhaseTDExpFitSGStatistic):
+class iDQPhaseTDExpFitSGStatistic(PhaseTDExpFitSGStatistic):
     """Statistic combining exponential noise model with signal histogram PDF
     adding the sine-Gaussian veto to the single detector ranking, 
     
@@ -1610,12 +1610,7 @@ class PlaceHolder(PhaseTDExpFitSGStatistic):
     """
 
     def __init__(self, files=None, ifos=None, **kwargs):
-        self.veto_file = [f for f in files if f.split('.')[-1] == 'xml']
-        assert len(self.veto_file) == 1
-        self.veto_file = self.veto_file[0]
-        hdf_files = [f for f in files if f.split('.')[-1] != 'xml'] 
-        assert len(files) - len(hdf_files) == 1
-        PhaseTDExpFitSGStatistic.__init__(self, files=hdf_files, ifos=ifos,
+        PhaseTDExpFitSGStatistic.__init__(self, files=files, ifos=ifos,
                                            **kwargs)
         parsed_attrs = [f.split('-') for f in self.files.keys()]
         self.bg_ifos_idq = [at[0] for at in parsed_attrs if
@@ -1665,9 +1660,7 @@ class PlaceHolder(PhaseTDExpFitSGStatistic):
         alphai, ratei, thresh = self.find_fits(trigs)
         idqi = self.find_idq_val(trigs)
         newsnr = self.get_newsnr(trigs)
-        time = trigs['end_time']
-        ratei = numpy.ones(len(time))*ratei
-                
+                        
         
         # alphai is constant of proportionality between single-ifo newsnr and
         #   negative log noise likelihood in given template
@@ -1704,7 +1697,8 @@ statistic_dict = {
     '2ogc': ExpFitSGPSDScaledFgBgNormStatistic, # backwards compatible
     '2ogcbbh': ExpFitSGPSDSTFgBgNormBBHStatistic, # backwards compatible
     'exp_fit_sg_fgbg_norm_psdvar': ExpFitSGPSDFgBgNormStatistic,
-    'exp_fit_sg_fgbg_norm_psdvar_bbh': ExpFitSGPSDFgBgNormBBHStatistic
+    'exp_fit_sg_fgbg_norm_psdvar_bbh': ExpFitSGPSDFgBgNormBBHStatistic,
+    'idq_phasetd_exp_fit_stat_sgveto' : iDQPhaseTDExpFitSGStatistic
 }
 
 sngl_statistic_dict = {
