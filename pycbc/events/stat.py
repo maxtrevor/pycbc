@@ -1628,8 +1628,8 @@ class iDQPhaseTDExpFitSGStatistic(PhaseTDExpFitSGStatistic):
         ref_file = self.files[ifo+'-idq_ts_reference']
         # somehow make an array called idq_pairs, consisting of ordered pairs [time,idq_val]
         # maybe something along the lines of the following
-        times = ref_file['times'][:]
-        idq_vals = ref_file['idq_vals'][:]
+        times = ref_file[ifo+'/times'][:]
+        idq_vals = ref_file[ifo+'/idq_vals'][:]
         idq_pairs=numpy.transpose([times,idq_vals])
         return idq_pairs
 
@@ -1645,9 +1645,10 @@ class iDQPhaseTDExpFitSGStatistic(PhaseTDExpFitSGStatistic):
             ifo = self.ifos[0]
         # idq_val_by_time is a dictionary of arrays of ordered pairs of [time, idq_val]
         # indexed by ifo
-        idqi = numpy.zeroes(len(trigs))
-        for (i,t) in enumerate(time):
-            idqi[i] = [ q[1] for q in self.idq_val_by_time[ifo] if q[0]==t ][0]
+        idqi = numpy.zeros(len(time))
+        print('time '+str(time))
+        for (i,t) in enumerate(time):    
+            idqi[i] = [ q[1] for q in self.idq_val_by_time[ifo] if q[0]==int(t) ][0]
         return idqi
                
 
@@ -1669,6 +1670,8 @@ class iDQPhaseTDExpFitSGStatistic(PhaseTDExpFitSGStatistic):
         
         lognoisel = - alphai * (newsnr - thresh) + numpy.log(alphai) + \
                       numpy.log(ratei) + numpy.log(idqi)
+        print('idqi '+str(idqi))
+        print('lognoisel '+str(lognoisel))
         return numpy.array(lognoisel, ndmin=1, dtype=numpy.float32)
 
 
