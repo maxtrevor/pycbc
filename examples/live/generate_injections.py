@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys
+import numpy as np
 from pycbc.io import record
 from pycbc.inject import InjectionSet
 
@@ -11,7 +12,7 @@ if os.path.exists('./test_inj.hdf'):
 static_params = { 'f_lower': 18.0, 'f_ref': 18.0, 'taper': 'start', 'ra': 45.0, 'dec': 45.0, 'inclination': 0.0, 
                'coa_phase': 0.0, 'polarization': 0.0}
 
-samples = record.FieldArray(2, dtype=[('approximant', 'S12'), ('mass1', float), ('mass2', float), 
+samples = record.FieldArray(2, dtype=[('approximant', str), ('mass1', float), ('mass2', float), 
                                       ('spin1z', float), ('spin2z', float), 
                                       ('tc', float), ('distance', float)])
 
