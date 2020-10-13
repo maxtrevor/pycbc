@@ -1630,7 +1630,7 @@ class iDQPhaseTDExpFitSGStatistic(PhaseTDExpFitSGStatistic):
         # maybe something along the lines of the following
         times = ref_file[ifo+'/times'][:]
         idq_vals = ref_file[ifo+'/idq_vals'][:]
-        idq_pairs=numpy.transpose([times,idq_vals])
+        idq_pairs = dict(zip(times,idq_vals))
         return idq_pairs
 
     def find_idq_val(self, trigs):
@@ -1648,7 +1648,7 @@ class iDQPhaseTDExpFitSGStatistic(PhaseTDExpFitSGStatistic):
         idqi = numpy.zeros(len(time))
         print('time '+str(time))
         for (i,t) in enumerate(time):    
-            idqi[i] = [ q[1] for q in self.idq_val_by_time[ifo] if q[0]==int(t) ][0]
+            idqi[i] = self.idq_val_by_time[ifo][int(t)]
         return idqi
                
 
@@ -1669,7 +1669,7 @@ class iDQPhaseTDExpFitSGStatistic(PhaseTDExpFitSGStatistic):
         # thresh is stat threshold used in given ifo
         
         lognoisel = - alphai * (newsnr - thresh) + numpy.log(alphai) + \
-                      numpy.log(ratei) + numpy.log(idqi)
+                      numpy.log(ratei) + idqi
         print('idqi '+str(idqi))
         print('lognoisel '+str(lognoisel))
         return numpy.array(lognoisel, ndmin=1, dtype=numpy.float32)
