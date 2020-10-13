@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+""" Calculate psd estimates for analysis segments
+"""
+import logging, argparse, numpy, h5py
+import pycbc
+from pycbc.version import git_verbose_msg as version
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--version', action='version', version=version)
+parser.add_argument('--verbose', action="store_true")
+parser.add_argument("--ifo", type=str,required=True)
+parser.add_argument("--max-stat", type=float,default=8)
+parser.add_argument("--input-file", required=True,nargs='+')
+parser.add_argument("--output-file", required=True)
+
+args = parser.parse_args()
+pycbc.init_logging(args.verbose)
+
+ifo = args.ifo
+
+log_like = numpy.array([])
+times = numpy.array([])
+for filename in args.input_file:
+    logging.info('Reading file %s...'%filename)
+    g = h5py.File(filename, 'r')
+    g_log_like = g[ifo + '/log_likelihood'][:]
+    g_times = g[ifo + '/times'][:]
+    g.close()
+    log_like = numpy.concatenate((log_like,g_log_like))
+    times = numpy.concatenate((times,g_times))
+
+log_like_ranking = numpy.argsort(log_like)
+len_log_like = len(log_like)
+
+times = times[log_like_ranking]
+log_like = numpy.arange(len(log_like))*100./len(log_like)
+
+p_min = int(len_log_like/2.) 
+p_max = int(len_log_like/(1.+numpy.e**-args.max_stat)) 
+
+log_like[p_min:p_max] = numpy.log(log_like[p_min:p_max]/(100.-log_like[p_min:p_max]))
+log_like[p_max:] = args.max_stat
+log_like[:p_min] = 0
+
+f = h5py.File(args.output_file, 'w')
+f[ifo + '/idq_vals'] = numpy.array(log_like, dtype=numpy.float32)
+f[ifo + '/times'] = numpy.array(times, dtype=numpy.uint32)
+f.attrs.create('stat', data=ifo+'-idq_ts_reference')
+f.close()
+
+logging.info('Done!')
+
