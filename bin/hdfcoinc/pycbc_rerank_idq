@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" Calculate psd estimates for analysis segments
+""" Merge and rerank clustered iDQ data
 """
 import logging, argparse, numpy, h5py
 import pycbc

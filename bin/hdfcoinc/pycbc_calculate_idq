@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" Calculate psd estimates for analysis segments
+""" Ingest and cluster iDQ data
 """
 import logging, argparse, numpy, h5py, multiprocessing, time, copy
 from six.moves import (range, zip_longest)
