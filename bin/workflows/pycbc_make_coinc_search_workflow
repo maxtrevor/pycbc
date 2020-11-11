@@ -128,7 +128,7 @@ for ifo in workflow.ifos:
 datafind_files, analyzable_file, analyzable_segs, analyzable_name = \
                                            wf.setup_datafind_workflow(workflow,
                                      ssegs, "datafind",
-                                     seg_file=science_seg_file)
+                                     seg_file=science_seg_file, tags=['hoft'])
 
 final_veto_name = ['vetoes']
 final_veto_file = wf.FileList([wf.get_segments_file(workflow, final_veto_name[0],
@@ -161,6 +161,7 @@ bank_plot = [(wf.make_template_plot(workflow, hdfbank[0],
 inj_files, inj_tags = wf.setup_injection_workflow(workflow,
                                                   output_dir="inj_files")
 
+
 ######################## Setup the FULL DATA run ##############################
 tag = output_dir = "full_data"
 ctags = [tag, 'full']
@@ -176,6 +177,7 @@ insps = wf.merge_single_detector_hdf_files(workflow, hdfbank[0],
 # setup sngl trigger distribution fitting jobs
 # 'statfiles' is list of files used in calculating coinc statistic
 statfiles = wf.FileList([])
+statfiles += wf.setup_idq_reranking(workflow, analyzable_segs, analyzable_file, output_dir='idq')
 statfiles += wf.setup_trigger_fitting(workflow, insps, hdfbank[0],
                                       final_veto_file[0], final_veto_name[0])
 
