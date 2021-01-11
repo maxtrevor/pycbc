@@ -33,14 +33,21 @@ log_like_ranking = numpy.argsort(log_like)
 len_log_like = len(log_like)
 
 times = times[log_like_ranking]
-log_like = numpy.arange(len(log_like))*100./len(log_like)
 
-p_min = int(len_log_like/2.) 
-p_max = int(len_log_like/(1.+numpy.e**-args.max_stat)) 
 
-log_like[p_min:p_max] = numpy.log(log_like[p_min:p_max]/(100.-log_like[p_min:p_max]))
-log_like[p_max:] = args.max_stat
-log_like[:p_min] = 0
+#log_like = numpy.arange(len(log_like))*100./len(log_like)
+#
+#p_min = int(len_log_like/2.) 
+#p_max = int(len_log_like/(1.+numpy.e**-args.max_stat)) 
+#
+#log_like[p_min:p_max] = numpy.log(log_like[p_min:p_max]/(100.-log_like[p_min:p_max]))
+#log_like[p_max:] = args.max_stat
+#log_like[:p_min] = 0
+
+f = h5py.File('bin_rates.hdf','r')
+log_like = f['rates']
+f.close()
+
 
 f = h5py.File(args.output_file, 'w')
 f[ifo + '/idq_vals'] = numpy.array(log_like, dtype=numpy.float32)
