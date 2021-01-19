@@ -45,9 +45,20 @@ times = times[log_like_ranking]
 #log_like[:p_min] = 0
 
 f = h5py.File('bin_rates.hdf','r')
-log_like = f['rates']
+rates = f['rates']
 f.close()
 
+l = len(rates)
+x = int(len_log_like/l)
+
+seg_lens = numpy.ones(l,dtype=int)*x
+excess = len_log_like - l*x
+seg_lens[-excess:]=seg_lens[-excess:]+1
+
+count = 0
+for i in range(l):
+    log_like[count:count+seg_lens[i]]=rates[i]
+    count = count+seg_lens[i]
 
 f = h5py.File(args.output_file, 'w')
 f[ifo + '/idq_vals'] = numpy.array(log_like, dtype=numpy.float32)
