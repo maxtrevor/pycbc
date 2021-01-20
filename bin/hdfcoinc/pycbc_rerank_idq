@@ -3,6 +3,7 @@
 """
 import logging, argparse, numpy, h5py
 import pycbc
+from os import path 
 from pycbc.version import git_verbose_msg as version
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -11,6 +12,7 @@ parser.add_argument('--verbose', action="store_true")
 parser.add_argument("--ifo", type=str,required=True)
 parser.add_argument("--max-stat", type=float,default=8)
 parser.add_argument("--input-file", required=True,nargs='+')
+parser.add_argument("--rate-file", type = str, default = None)
 parser.add_argument("--output-file", required=True)
 
 args = parser.parse_args()
@@ -35,30 +37,37 @@ len_log_like = len(log_like)
 times = times[log_like_ranking]
 
 
-#log_like = numpy.arange(len(log_like))*100./len(log_like)
-#
-#p_min = int(len_log_like/2.) 
-#p_max = int(len_log_like/(1.+numpy.e**-args.max_stat)) 
-#
-#log_like[p_min:p_max] = numpy.log(log_like[p_min:p_max]/(100.-log_like[p_min:p_max]))
-#log_like[p_max:] = args.max_stat
-#log_like[:p_min] = 0
 
-f = h5py.File('bin_rates.hdf','r')
-rates = f['rates']
-f.close()
 
-l = len(rates)
-x = int(len_log_like/l)
+if args.rate_file is not None:
+    if path.isfile(args.rate_file):
+        f = h5py.File('bin_rates.hdf','r')
+        rates = f['rates']
+        f.close()
 
-seg_lens = numpy.ones(l,dtype=int)*x
-excess = len_log_like - l*x
-seg_lens[-excess:]=seg_lens[-excess:]+1
+        l = len(rates)
+        x = int(len_log_like/l)
 
-count = 0
-for i in range(l):
-    log_like[count:count+seg_lens[i]]=rates[i]
-    count = count+seg_lens[i]
+        seg_lens = numpy.ones(l,dtype=int)*x
+        excess = len_log_like - l*x
+        seg_lens[-excess:]=seg_lens[-excess:]+1
+
+        count = 0
+        for i in range(l):
+            log_like[count:count+seg_lens[i]]=rates[i]
+            count = count+seg_lens[i]
+        
+    else: logging.error('Could not find binned trigger rates file')
+else:
+    log_like = numpy.arange(len(log_like))*100./len(log_like)
+    
+    p_min = int(len_log_like/2.) 
+    p_max = int(len_log_like/(1.+numpy.e**-args.max_stat)) 
+    
+    log_like[p_min:p_max] = numpy.log(log_like[p_min:p_max]/(100.-log_like[p_min:p_max]))
+    log_like[p_max:] = args.max_stat
+    log_like[:p_min] = 0
+
 
 f = h5py.File(args.output_file, 'w')
 f[ifo + '/idq_vals'] = numpy.array(log_like, dtype=numpy.float32)
