@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+""" Merge and rerank clustered iDQ data
+"""
+import logging
+import argparse
+import pycbc
+import numpy as np
+import h5py as h5
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from pycbc.version import git_verbose_msg as version
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--version', action='version', version=version)
+parser.add_argument('--verbose', action="store_true")
+parser.add_argument("--ifo", type=str,required=True)
+parser.add_argument("--trig-file", required=True)
+parser.add_argument("--idq-file", required=True)
+parser.add_argument("--output-file", required=True)
+
+args = parser.parse_args()
+pycbc.init_logging(args.verbose)
+
+ifo = args.ifo
+
+trig_file = h5.File(args.trig_file,'r')
+idq_file = h5.File(args.idq_file,'r')
+
+trig_times = trig_file[ifo+'/endtime'][:]
+trig_file.close()
+trig_times_int = trig_times.astype('int')
+
+idq_times = idq_file[ifo+'/times'][:]
+idq_logl = idq_file[ifo+'/log_likelihood'][:]
+t0 = idq_file[ifo+'/start_time'][0]
+t1 = idq_file[ifo+'/end_time'][0]
+t = t1-t0
+idq_file.close()
+
+percent_bin = 0.5
+bin_time = t/percent_bin*100
+percentiles = np.linspace(0,100,int(1+100./percent_bin))
+
+idq_percentiles = np.percentile(idq_logl,percentiles)
+
+idq_percentiles_time = {}
+for t,idq_ll in zip(idq_times,idq_logl):
+    idq_percentiles_time[t] = len(idq_percentiles[idq_percentiles < idq_ll])*percent_bin/100.
+
+trig_percentile = [idq_percentiles_time[t] for t in trig_times_int]
+
+(counts, bins) = np.histogram(trig_percentile, bins = percentiles/100.)
+rates = counts/bin_time
+rates/=np.mean(rates)
+plt.hist(bins[:-1],bins,weights=rates)
+plt.xlabel('iDQ percentile')
+plt.ylabel('Trigger rate, normalized')
+plt.xlim(0.0,1.0)
+plt.savefig('rates.png')
+plt.xlim(0.9,1.0)
+plt.savefig('rates_zoom.png')
+
+quit()
+
+f = h5.File(args.output_file,'w')
+f['rates']=rates
+f.close()
