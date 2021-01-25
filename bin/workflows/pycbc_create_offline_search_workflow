@@ -137,8 +137,9 @@ for ifo in workflow.ifos:
     ssegs[ifo] = science_seg_file.segment_dict["%s:science" % ifo]
 
 hoft_tags=[]
-if len(workflow.cp.get_subsections('workflow-datafind'))>0:
-    tags=['hoft']
+#if len(workflow.cp.get_subsections('workflow-datafind'))>0:
+if 'hoft' in workflow.cp.get_subsections('workflow-datafind'):
+    hoft_tags=['hoft']
 datafind_files, analyzable_file, analyzable_segs, analyzable_name = \
                                            wf.setup_datafind_workflow(workflow,
                                      ssegs, "datafind",
