@@ -52,7 +52,7 @@ class PyCBCRerankiDQExecutable(Executable):
 def setup_idq_reranking(workflow, segs, analyzable_file, output_dir=None, tags=None):
     if not workflow.cp.has_option('workflow-coincidence', 'do-idq-fitting'):
         return FileList()
-    else:
+    elif 'idq' in workflow.cp.get_subsections('workflow-datafind'):
         datafind_files, idq_file, idq_segs, idq_name = \
                                            setup_datafind_workflow(workflow,
                                            segs, "datafind_idq",
@@ -78,5 +78,13 @@ def setup_idq_reranking(workflow, segs, analyzable_file, output_dir=None, tags=N
             new_node = new_exe.create_node(ifo, idq_files)
             workflow += new_node
             output += new_node.output_files
+    else:
+        msg = """No workflow-datafind section with idq tag.
+              Tags must be used in workflow-datafind sections "
+              if more than one source of data is used.
+              Strain data source must be tagged 
+              workflow-datafind-hoft.
+              Consult the documentation for more info."""
+        raise ValueError(msg)
                
         return output
