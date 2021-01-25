@@ -136,10 +136,13 @@ ssegs = {}
 for ifo in workflow.ifos:
     ssegs[ifo] = science_seg_file.segment_dict["%s:science" % ifo]
 
+hoft_tags=[]
+if len(workflow.cp.get_subsections('workflow-datafind'))>0:
+    tags=['hoft']
 datafind_files, analyzable_file, analyzable_segs, analyzable_name = \
                                            wf.setup_datafind_workflow(workflow,
                                      ssegs, "datafind",
-                                     seg_file=science_seg_file)
+                                     seg_file=science_seg_file, tags=hoft_tags)
 
 final_veto_name = 'vetoes'
 final_veto_file = wf.get_segments_file(workflow, final_veto_name,
@@ -175,6 +178,8 @@ insps = wf.merge_single_detector_hdf_files(workflow, hdfbank,
 # setup sngl trigger distribution fitting jobs
 # 'statfiles' is list of files used in calculating coinc statistic
 statfiles = []
+statfiles += wf.setup_idq_reranking(workflow, analyzable_segs, 
+                                    analyzable_file, output_dir='idq')
 statfiles += wf.setup_trigger_fitting(workflow, insps, hdfbank,
                                       final_veto_file, final_veto_name,
                                       output_dir=output_dir,
