@@ -42,14 +42,25 @@ class PyCBCCalculateiDQExecutable(Executable):
 
 class PyCBCRerankiDQExecutable(Executable):    
     current_retention_level = Executable.MERGED_TRIGGERS
-    def create_node(self, ifo, idq_files):
+    def create_node(self, ifo, idq_files, binned_rate_file):
         node = Node(self)
         node.add_opt('--ifo', ifo)
         node.add_input_list_opt('--input-file', idq_files)
+        node.add_input_list_opt('--rate-file', binned_rate_file)
         node.new_output_file_opt(idq_files[0].segment, '.hdf', '--output-file')        
         return node
     
-def setup_idq_reranking(workflow, segs, analyzable_file, output_dir=None, tags=None):
+class PyCBCBinTriggerRatesiDQExecutable(Executable):
+    current_retention_level = Executable.MERGED_TRIGGERS
+    def create_node(self, ifo, idq_files, trig_file):
+        node = Node(self)
+        node.add_opt('--ifo', ifo)
+        node.add_opt('--trig-file', trig_file)
+        node.add_opt('--idq-file', idq_files)
+        node.new_output_file_opt(ifo+idq_files[0].segment+'_idq','.hdf', '--output-file')
+        return node
+    
+def setup_idq_reranking(workflow, insps, segs, analyzable_file, output_dir=None, tags=None):
     if not workflow.cp.has_option('workflow-coincidence', 'do-idq-fitting'):
         return FileList()
     else:
@@ -60,6 +71,11 @@ def setup_idq_reranking(workflow, segs, analyzable_file, output_dir=None, tags=N
                                            tags=['idq'])
         output = FileList()
         for ifo in workflow.ifos:
+            
+            ifo_insp = [insp for insp in insps if (insp.ifo == ifo)]
+            assert len(ifo_insp)==1
+            ifo_insp = ifo_insp[0]
+            
             idq_files = FileList()
             for seg in idq_segs[ifo]:
                 seg_frames = datafind_files.find_all_output_in_range(ifo, seg)
@@ -70,12 +86,20 @@ def setup_idq_reranking(workflow, segs, analyzable_file, output_dir=None, tags=N
                 raw_node = raw_exe.create_node(seg, seg_frames)
                 workflow += raw_node
                 idq_files += raw_node.output_files
+                
+            intermediate_exe = PyCBCBinTriggerRatesiDQExecutable(workflow.cp,
+                                                   'bin_trigger_rates_idq', ifos=ifo,
+                                                   out_dir=output_dir,
+                                                   tags=tags)
+            intermediate_node = intermediate_exe.create_node(ifo, idq_files, ifo_insp)
+            workflow += intermediate_node
+            binned_rate_file = intermediate_node.output_file
             
             new_exe = PyCBCRerankiDQExecutable(workflow.cp,
                                                    'rerank_idq', ifos=ifo,
                                                    out_dir=output_dir,
                                                    tags=tags)
-            new_node = new_exe.create_node(ifo, idq_files)
+            new_node = new_exe.create_node(ifo, idq_files, binned_rate_file)
             workflow += new_node
             output += new_node.output_files
                

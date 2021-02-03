@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" Merge and rerank clustered iDQ data
+""" Bin triggers by their idq logl and calculate trigger rates in each bin
 """
 import logging
 import argparse
@@ -16,7 +16,7 @@ parser.add_argument('--version', action='version', version=version)
 parser.add_argument('--verbose', action="store_true")
 parser.add_argument("--ifo", type=str,required=True)
 parser.add_argument("--trig-file", required=True)
-parser.add_argument("--idq-file", required=True)
+parser.add_argument("--idq-file", required=True,nargs='+')
 parser.add_argument("--output-file", required=True)
 
 args = parser.parse_args()
@@ -25,18 +25,25 @@ pycbc.init_logging(args.verbose)
 ifo = args.ifo
 
 trig_file = h5.File(args.trig_file,'r')
-idq_file = h5.File(args.idq_file,'r')
-
 trig_times = trig_file[ifo+'/endtime'][:]
 trig_file.close()
 trig_times_int = trig_times.astype('int')
 
-idq_times = idq_file[ifo+'/times'][:]
-idq_logl = idq_file[ifo+'/log_likelihood'][:]
-t0 = idq_file[ifo+'/start_time'][0]
-t1 = idq_file[ifo+'/end_time'][0]
+idq_times = np.array([])
+idq_logl = np.array([])
+
+for filename in args.idq_file:
+    logging.info('Reading file %s...'%filename)
+    g = h5.File(filename, 'r')
+    g_logl = g[ifo + '/log_likelihood'][:]
+    g_times = g[ifo + '/times'][:]
+    g.close()
+    idq_logl = np.concatenate((idq_logl,g_logl))
+    idq_times = np.concatenate((idq_times,g_times))
+
+t0 = np.min(idq_times)
+t1 = np.max(idq_times)
 t = t1-t0
-idq_file.close()
 
 percent_bin = 0.5
 bin_time = t/percent_bin*100
@@ -60,8 +67,6 @@ plt.xlim(0.0,1.0)
 plt.savefig('rates.png')
 plt.xlim(0.9,1.0)
 plt.savefig('rates_zoom.png')
-
-quit()
 
 f = h5.File(args.output_file,'w')
 f['rates']=rates
