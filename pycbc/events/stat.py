@@ -1773,7 +1773,7 @@ class iDQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
         # somehow make an array called idq_pairs, consisting of ordered pairs [time,idq_val]
         # maybe something along the lines of the following
         times = ref_file[ifo+'/times'][:]
-        idq_vals = ref_file[ifo+'/idq_vals'][:]
+        idq_vals = ref_file[ifo+'/dq_vals'][:]
         idq_pairs = dict(zip(times,idq_vals))
         return idq_pairs
 

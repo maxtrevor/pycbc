@@ -70,9 +70,10 @@ else:
 
 
 f = h5py.File(args.output_file, 'w')
-f[ifo + '/idq_vals'] = numpy.array(log_like, dtype=numpy.float32)
+f[ifo + '/dq_vals'] = numpy.array(log_like, dtype=numpy.float32)
 f[ifo + '/times'] = numpy.array(times, dtype=numpy.uint32)
 f.attrs.create('stat', data=ifo+'-idq_ts_reference')
+f.attrs.create('dq_type', data='idq')
 f.close()
 
 logging.info('Done!')
