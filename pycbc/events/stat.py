@@ -1728,16 +1728,34 @@ class ExpFitSGPSDFgBgNormBBHStatistic(ExpFitSGFgBgNormStatistic):
         loglr += numpy.log((self.curr_mchirp / 20.0) ** (11./3.0))
         return loglr
 
-class iDQPhaseTDExpFitStatistic(PhaseTDExpFitStatistic):
-    """Statistic combining exponential noise model with signal histogram PDF
-    adding the sine-Gaussian veto to the single detector ranking, 
-    
-    iDQ vetoes are used to rerank instead of veto
+class iDQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
+    """
+    The ExpFitSGFgBgNormStatistic with iDQ-based reranking.
+
+    This is the same as the ExpFitSGFgBgNormStatistic except the likelihood
+    is multiplied by the relative signal rate during the relevant
+    iDQ likelihood value.
     """
 
-    def __init__(self, files=None, ifos=None, **kwargs):
-        PhaseTDExpFitStatistic.__init__(self, files=files, ifos=ifos,
-                                           **kwargs)
+    def __init__(self, sngl_ranking, files=None, ifos=None,
+                 **kwargs):
+        """
+        Create a statistic class instance
+
+        Parameters
+        ----------
+        sngl_ranking: str
+            The name of the ranking to use for the single-detector triggers.
+        files: list of strs, needed here
+            A list containing the filenames of hdf format files used to help
+            construct the coincident statistics. The files must have a 'stat'
+            attribute which is used to associate them with the appropriate
+            statistic class.
+        ifos: list of strs, not used here
+            The list of detector names
+        """
+        ExpFitSGFgBgNormStatistic.__init__(self, sngl_ranking, files=files,
+                                           ifos=ifos, **kwargs)
         parsed_attrs = [f.split('-') for f in self.files.keys()]
         self.bg_ifos_idq = [at[0] for at in parsed_attrs if
                        (len(at) == 2 and at[1] == 'idq_ts_reference')]
@@ -1773,32 +1791,33 @@ class iDQPhaseTDExpFitStatistic(PhaseTDExpFitStatistic):
         # indexed by ifo
         idqi = numpy.zeros(len(time))
         print('time '+str(time))
-        for (i,t) in enumerate(time):    
+        for (i,t) in enumerate(time):
             idqi[i] = self.idq_val_by_time[ifo][int(t)]
         return idqi
-               
 
     def lognoiserate(self, trigs):
-        """Calculate the log noise rate density over single-ifo newsnr
-        Read in single trigger information, make the newsnr statistic
-        and rescale by the fitted coefficients alpha and rate and the idq likelihood
         """
-        
-        alphai, ratei, thresh = self.find_fits(trigs)
+        Calculate the log noise rate density over single-ifo ranking
+
+        Read in single trigger information, compute the ranking
+        and rescale by the fitted coefficients alpha and rate
+
+        Parameters
+        -----------
+        trigs: dict of numpy.ndarrays, h5py group (or similar dict-like object)
+            Dictionary-like object holding single detector trigger information.
+
+        Returns
+        ---------
+        lognoisel: numpy.array
+            Array of log noise rate density for each input trigger.
+
+        """
+        logr_n = ExpFitSGFgBgNormStatistic.lognoiserate(
+                    self,trigs)
         idqi = self.find_idq_val(trigs)
-        newsnr = self.get_newsnr(trigs)
-                        
-        
-        # alphai is constant of proportionality between single-ifo newsnr and
-        #   negative log noise likelihood in given template
-        # ratei is rate of trigs in given template compared to average
-        # thresh is stat threshold used in given ifo
-        
-        lognoisel = - alphai * (newsnr - thresh) + numpy.log(alphai) + \
-                      numpy.log(ratei) + idqi
-        print('idqi '+str(idqi))
-        print('lognoisel '+str(lognoisel))
-        return numpy.array(lognoisel, ndmin=1, dtype=numpy.float32)
+        logr_n +- idqi
+        return logr_n
 
 
 statistic_dict = {
@@ -1811,7 +1830,7 @@ statistic_dict = {
     'exp_fit_sg_bg_rate': ExpFitSGBgRateStatistic,
     'phasetd_exp_fit_sg_fgbg_norm': ExpFitSGFgBgNormStatistic,
     'phasetd_exp_fit_sg_fgbg_bbh_norm': ExpFitSGPSDFgBgNormBBHStatistic,
-    'idq_phasetd_exp_fit_stat' : iDQPhaseTDExpFitStatistic
+    'idq_phasetd_exp_fit_sg_fgbg_norm': iDQExpFitSGFgBgNormStatistic,
 }
 
 
