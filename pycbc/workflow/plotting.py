@@ -494,3 +494,23 @@ def make_singles_plot(workflow, trig_files, bank_file, veto_file, veto_name,
             workflow += node
             files += node.output_files
     return files
+
+def make_dq_trigger_rate_plot(workflow, dq_file, out_dir, exclude=None,
+                     require=None, tags=None):
+    tags = [] if tags is None else tags
+    makedir(out_dir)
+    secs = requirestr(workflow.cp.get_subsections('plot_dqtriggerrate'), require)
+    secs = excludestr(secs, exclude)
+    files = FileList([])
+    for tag in secs:
+        node = PlotExecutable(workflow.cp, 'plot_dqtriggerrate',
+                    ifos=dq_file.ifo,
+                    out_dir=out_dir,
+                    tags=[tag] + tags).create_node()
+        node.add_opt('--ifo', dq_file.ifo)
+        node.add_input_opt('--dq-file', trig_file)
+        node.new_output_file_opt(dq_file.segment, '.png', '--output-file')
+        workflow += node
+        files += node.output_files
+    return files
+

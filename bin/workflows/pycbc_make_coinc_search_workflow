@@ -81,6 +81,7 @@ os.chdir(args.output_dir)
 
 rdir = layout.SectionNumber('results', ['analysis_time',
                                  'detector_sensitivity',
+                                 'data_quality',
                                  'single_triggers',
                                  'coincident_triggers',
                                  'injections',
@@ -178,9 +179,13 @@ insps = wf.merge_single_detector_hdf_files(workflow, hdfbank,
 
 # setup sngl trigger distribution fitting jobs
 # 'statfiles' is list of files used in calculating coinc statistic
+# 'dqfiles' is the subset of files containing data quality information
 statfiles = []
-statfiles += wf.setup_idq_reranking(workflow, analyzable_segs, analyzable_file, 
+dqfiles = []
+idq_files += wf.setup_idq_reranking(workflow, analyzable_segs, analyzable_file, 
                                     output_dir='idq',tags=['full_data'])
+statfiles += idq_files
+dqfiles += idq_files
 statfiles += wf.setup_trigger_fitting(workflow, insps, hdfbank,
                                       final_veto_file, final_veto_name,
                                       output_dir=output_dir,
@@ -501,6 +506,11 @@ for key in final_bg_files:
     snrifar_summ += closed_page
     layout.two_column_layout(closed_dir, closed_page)
 
+#################### Plotting of data quality results #########################
+
+for dqf in dqfiles:
+    outdir = rdir['data_quality/%s_trigger_rates' % dqf.ifo]
+    wf.make_dq_trigger_rate_plot(workflow, [dqf], outdir, tags=['full_data'])
 
 ############################## Setup the injection runs #######################
 
