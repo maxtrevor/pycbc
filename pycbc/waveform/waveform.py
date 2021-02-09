@@ -134,7 +134,43 @@ def _check_lal_pars(p):
         for l,m in p['mode_array']:
             lalsimulation.SimInspiralModeArrayActivateMode(ma, l, m)
         lalsimulation.SimInspiralWaveformParamsInsertModeArray(lal_pars, ma)
-
+    #TestingGR parameters:
+    if p['dchi0'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi0(lal_pars,p['dchi0'])
+    if p['dchi1'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi1(lal_pars,p['dchi1'])
+    if p['dchi2'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi2(lal_pars,p['dchi2'])
+    if p['dchi3'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi3(lal_pars,p['dchi3'])
+    if p['dchi4'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi4(lal_pars,p['dchi4'])
+    if p['dchi5'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi5(lal_pars,p['dchi5'])
+    if p['dchi5l'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi5L(lal_pars,p['dchi5l'])
+    if p['dchi6'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi6(lal_pars,p['dchi6'])
+    if p['dchi6l'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi6L(lal_pars,p['dchi6l'])
+    if p['dchi7'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi7(lal_pars,p['dchi7'])
+    if p['dalpha1'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDAlpha1(lal_pars,p['dalpha1'])
+    if p['dalpha2'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDAlpha2(lal_pars,p['dalpha2'])
+    if p['dalpha3'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDAlpha3(lal_pars,p['dalpha3'])
+    if p['dalpha4'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDAlpha4(lal_pars,p['dalpha4'])
+    if p['dalpha5'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDAlpha5(lal_pars,p['dalpha5'])
+    if p['dbeta1'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDBeta1(lal_pars,p['dbeta1'])
+    if p['dbeta2'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDBeta2(lal_pars,p['dbeta2'])
+    if p['dbeta3'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDBeta3(lal_pars,p['dbeta3'])
     return lal_pars
 
 def _lalsim_td_waveform(**p):
@@ -611,14 +647,13 @@ def get_td_waveform_from_fd(rwrap=0.2, **params):
     hc: pycbc.types.TimeSeries
         Cross polarization time series
     """
-
     # determine the duration to use
     full_duration = duration = get_waveform_filter_length_in_time(**params)
     nparams = params.copy()
 
     while full_duration < duration * 1.5:
         full_duration = get_waveform_filter_length_in_time(**nparams)
-        nparams['f_lower'] -= 1
+        nparams['f_lower'] *= 0.99
 
     if 'f_ref' not in nparams:
         nparams['f_ref'] = params['f_lower']
@@ -804,18 +839,28 @@ def imrphenomd_length_in_time(**kwds):
 def imrphenomhm_length_in_time(**kwargs):
     """Estimates the duration of IMRPhenom waveforms that include higher modes.
     """
+    # Default maximum node number for IMRPhenomHM is 4
+    # The relevant lower order approximant here is IMRPhenomD
+    return get_hm_length_in_time("IMRPhenomD", 4, **kwargs)
+
+def seobnrv4hm_length_in_time(**kwargs):
+    """ Estimates the duration of SEOBNRv4HM waveforms that include higher modes.
+    """
+    # Default maximum node number for SEOBNRv4HM is 5
+    # The relevant lower order approximant here is SEOBNRv4
+    return get_hm_length_in_time('SEOBNRv4', 5, **kwargs)
+
+def get_hm_length_in_time(lor_approx, maxm_default, **kwargs):
     if 'mode_array' in kwargs and kwargs['mode_array'] is not None:
         maxm = max(m for _, m in kwargs['mode_array'])
     else:
-        # the highest m for all of these is 4 (from the 4,4 mode)
-        maxm = 4
-    # we'll use the PhenomD length, with the frequency scaled by 2/m
+        maxm = maxm_default
     try:
         flow = kwargs['f_lower']
     except KeyError:
         raise ValueError("must provide a f_lower")
     kwargs['f_lower'] = flow * 2./maxm
-    return get_imr_length("IMRPhenomD", **kwargs)
+    return get_imr_length(lor_approx, **kwargs)
 
 _filter_norms["SPAtmplt"] = spa_tmplt_norm
 _filter_preconditions["SPAtmplt"] = spa_tmplt_precondition
@@ -842,6 +887,7 @@ _filter_time_lengths["EOBNRv2_ROM"] = seobnrv2_length_in_time
 _filter_time_lengths["EOBNRv2HM_ROM"] = seobnrv2_length_in_time
 _filter_time_lengths["SEOBNRv2_ROM_DoubleSpin_HI"] = seobnrv2_length_in_time
 _filter_time_lengths["SEOBNRv4_ROM"] = seobnrv4_length_in_time
+_filter_time_lengths["SEOBNRv4HM_ROM"] = seobnrv4hm_length_in_time
 _filter_time_lengths["SEOBNRv4"] = seobnrv4_length_in_time
 _filter_time_lengths["IMRPhenomC"] = imrphenomd_length_in_time
 _filter_time_lengths["IMRPhenomD"] = imrphenomd_length_in_time
@@ -866,6 +912,9 @@ cpu_fd["TaylorF2NL"] = nonlinear_tidal_spa
 
 from .premerger import premerger_taylorf2
 cpu_fd['PreTaylorF2'] = premerger_taylorf2
+
+from .multiband import multiband_fd_waveform
+cpu_fd['multiband'] = multiband_fd_waveform
 
 # Load external waveforms #####################################################
 if 'PYCBC_WAVEFORM' in os.environ:

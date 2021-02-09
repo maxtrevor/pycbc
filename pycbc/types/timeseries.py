@@ -90,10 +90,18 @@ class TimeSeries(Array):
 
     def sample_rate_close(self, other):
         """ Check if the sample rate is close enough to allow operations """
-        if (other.delta_t - self.delta_t) / self.delta_t > 1e-4:
+
+        # compare our delta_t either to a another time series' or
+        # to a given sample rate (float)
+        if isinstance(other, TimeSeries):
+            odelta_t = other.delta_t
+        else:
+            odelta_t = 1.0/other
+
+        if (odelta_t - self.delta_t) / self.delta_t > 1e-4:
             return False
 
-        if abs(1 - other.delta_t / self.delta_t) * len(self) > 0.5:
+        if abs(1 - odelta_t / self.delta_t) * len(self) > 0.5:
             return False
 
         return True
@@ -175,6 +183,12 @@ class TimeSeries(Array):
 
         start_idx = float(start - self.start_time) * self.sample_rate
         end_idx = float(end - self.start_time) * self.sample_rate
+
+        if _numpy.isclose(start_idx, round(start_idx)):
+            start_idx = round(start_idx)
+
+        if _numpy.isclose(end_idx, round(end_idx)):
+            end_idx = round(end_idx)
 
         if mode == 'floor':
             start_idx = int(start_idx)
