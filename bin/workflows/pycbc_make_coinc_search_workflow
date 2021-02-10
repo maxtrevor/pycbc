@@ -182,7 +182,7 @@ insps = wf.merge_single_detector_hdf_files(workflow, hdfbank,
 # 'dqfiles' is the subset of files containing data quality information
 statfiles = []
 dqfiles = []
-idq_files += wf.setup_idq_reranking(workflow, analyzable_segs, analyzable_file, 
+idq_files = wf.setup_idq_reranking(workflow, insps, analyzable_segs, analyzable_file, 
                                     output_dir='idq',tags=['full_data'])
 statfiles += idq_files
 dqfiles += idq_files

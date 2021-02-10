@@ -46,7 +46,7 @@ class PyCBCRerankiDQExecutable(Executable):
         node = Node(self)
         node.add_opt('--ifo', ifo)
         node.add_input_list_opt('--input-file', idq_files)
-        node.add_input_list_opt('--rate-file', binned_rate_file)
+        node.add_input_opt('--rate-file', binned_rate_file)
         node.new_output_file_opt(idq_files[0].segment, '.hdf', '--output-file')        
         return node
     
@@ -55,9 +55,9 @@ class PyCBCBinTriggerRatesiDQExecutable(Executable):
     def create_node(self, ifo, idq_files, trig_file):
         node = Node(self)
         node.add_opt('--ifo', ifo)
-        node.add_opt('--trig-file', trig_file)
-        node.add_opt('--idq-file', idq_files)
-        node.new_output_file_opt(ifo+idq_files[0].segment+'_idq','.hdf', '--output-file')
+        node.add_input_opt('--trig-file', trig_file)
+        node.add_input_list_opt('--idq-file', idq_files)
+        node.new_output_file_opt(idq_files[0].segment,'.hdf', '--output-file')
         return node
     
 def setup_idq_reranking(workflow, insps, segs, analyzable_file, output_dir=None, tags=None):
@@ -111,4 +111,4 @@ def setup_idq_reranking(workflow, insps, segs, analyzable_file, output_dir=None,
               Consult the documentation for more info."""
         raise ValueError(msg)
                
-        return output
+    return output
