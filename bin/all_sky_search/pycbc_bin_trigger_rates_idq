@@ -18,6 +18,7 @@ parser.add_argument("--ifo", type=str,required=True)
 parser.add_argument("--trig-file", required=True)
 parser.add_argument("--idq-file", required=True,nargs='+')
 parser.add_argument("--output-file", required=True)
+parser.add_argument("--output-plot")
 
 args = parser.parse_args()
 pycbc.init_logging(args.verbose)
@@ -25,7 +26,7 @@ pycbc.init_logging(args.verbose)
 ifo = args.ifo
 
 trig_file = h5.File(args.trig_file,'r')
-trig_times = trig_file[ifo+'/endtime'][:]
+trig_times = trig_file[ifo+'/end_time'][:]
 trig_file.close()
 trig_times_int = trig_times.astype('int')
 
@@ -60,13 +61,14 @@ trig_percentile = [idq_percentiles_time[t] for t in trig_times_int]
 (counts, bins) = np.histogram(trig_percentile, bins = percentiles/100.)
 rates = counts/bin_time
 rates/=np.mean(rates)
-plt.hist(bins[:-1],bins,weights=rates)
-plt.xlabel('iDQ percentile')
-plt.ylabel('Trigger rate, normalized')
-plt.xlim(0.0,1.0)
-plt.savefig('rates.png')
-plt.xlim(0.9,1.0)
-plt.savefig('rates_zoom.png')
+if args.output_plot:
+    plt.hist(bins[:-1],bins,weights=rates)
+    plt.xlabel('iDQ percentile')
+    plt.ylabel('Trigger rate, normalized')
+    plt.xlim(0.0,1.0)
+    plt.savefig('rates.png')
+    plt.xlim(0.9,1.0)
+    plt.savefig(args.output_plot)
 
 f = h5.File(args.output_file,'w')
 f['rates']=rates

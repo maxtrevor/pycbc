@@ -171,6 +171,9 @@ if __name__ == '__main__':
                              'injections. Format PART/NUM_PARTS')
     opts = parser.parse_args()
 
+    from pycbc.waveform import td_approximants
+    print(td_approximants())
+
     detectors = opts.snr_columns.keys()
 
     if not opts.time_varying_psds:
