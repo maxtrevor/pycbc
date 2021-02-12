@@ -42,7 +42,7 @@ times = times[log_like_ranking]
 if args.rate_file is not None:
     if path.isfile(args.rate_file):
         f = h5py.File(args.rate_file,'r')
-        rates = f['rates']
+        rates = f['rates'][:]
         f.close()
 
         l = len(rates)

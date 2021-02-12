@@ -2,12 +2,14 @@
 """ Bin triggers by their idq logl and calculate trigger rates in each bin
 """
 import logging
+import sys
 import argparse
 import pycbc
 import h5py
 from matplotlib import use; use('Agg')
 from matplotlib import pyplot
 from pycbc.version import git_verbose_msg as version
+import pycbc.results
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--version', action='version', version=version)
@@ -25,27 +27,32 @@ ifo = args.ifo
 f = h5py.File(args.dq_file, 'r')
 
 xvals = f['%s/times'%ifo][:]
-yvals = f['%s/log_likelihood'%ifo][:]
+yvals = f['%s/dq_vals'%ifo][:]
 dq_name = f.attrs['dq_type'] 
 
 xmax = max(xvals) + 0.2 * (max(xvals)-min(xvals))
-xmin = min(xvals) + 0.2 * (max(xvals)-min(xvals)
+xmin = min(xvals) - 0.2 * (max(xvals)-min(xvals))
 
 ymax = 1.2 * max(yvals)
+
+color = pycbc.results.ifo_color(ifo)
 
 # create a figure to add a histogram
 fig = pyplot.figure(0)
 
-pyplot.scatter(xvals,yvals)
+pyplot.scatter(xvals,yvals,
+               label=' '.join([ifo,dq_name]), edgecolor='none', 
+               s=1, color=color)
+pyplot.legend(loc='upper left', markerscale=5)
 
 # format plot
-ax = pyplot.gca()
 if args.log_y:
-    ax.set_yscale('log')
+    pyplot.yscale('log')
 pyplot.ylabel('Relative trigger rate')
 pyplot.xlabel('Time (s)')
-pyplot.ylim(ymin=0,ymax=ymax)
+pyplot.ylim(ymin=1,ymax=ymax)
 pyplot.xlim(xmin=xmin,xmax=xmax)
+
 
 # add a grid to the plot
 pyplot.grid()

@@ -1790,7 +1790,6 @@ class iDQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
         # idq_val_by_time is a dictionary of arrays of ordered pairs of [time, idq_val]
         # indexed by ifo
         idqi = numpy.zeros(len(time))
-        print('time '+str(time))
         for (i,t) in enumerate(time):
             idqi[i] = self.idq_val_by_time[ifo][int(t)]
         return idqi
