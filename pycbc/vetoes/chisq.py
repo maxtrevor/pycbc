@@ -372,6 +372,7 @@ class SingleDetPowerChisq(object):
                 logging.info('%s above chisq activation threshold' % num_above)
                 above_indices = indices[above]
                 above_snrv = snrv[above]
+                u_vals = u_vals[above]
                 rchisq = numpy.zeros(len(indices), dtype=numpy.float32)
                 dof = -100
             else:
