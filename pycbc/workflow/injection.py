@@ -68,6 +68,18 @@ class PyCBCOptimalSNRExecutable(Executable):
                                  '--output-file')
         return node
 
+class PyCBCMergeInjectionExecutable(Executable):
+    """Merge HDF5 injection files"""
+    current_retention_level = Executable.MERGED_TRIGGERS
+
+    def create_node(self, workflow, inj_files):
+        node = Node(self)
+        _, ext = os.path.splitext(inj_file.name)
+        node.add_input_opt('--injection-files', inj_files)
+        node.new_output_file_opt(workflow.analysis_time, '.hdf',
+                                 '--output-file')
+        return node
+
 def compute_inj_optimal_snr(workflow, inj_file, precalc_psd_files, out_dir,
                             tags=None):
     "Set up a job for computing optimal SNRs of a sim_inspiral file."
@@ -106,13 +118,23 @@ def compute_inj_optimal_snr(workflow, inj_file, precalc_psd_files, out_dir,
         opt_snr_split_files += [node.output_files[0]]
         workflow += node
 
-    llwadd_exe = LigolwAddExecutable(workflow.cp, 'optimal_snr_merge',
-                                     ifos=workflow.ifos, out_dir=out_dir,
-                                     tags=tags)
-    llwadd_exe.update_current_retention_level(Executable.MERGED_TRIGGERS)
-    merge_node = llwadd_exe.create_node(workflow.analysis_time,
-                                        opt_snr_split_files,
-                                        use_tmp_subdirs=False)
+    _, ext = os.path.splitext(opt_snr_split_files[0].name)
+
+    if '.xml' in ext:
+        llwadd_exe = LigolwAddExecutable(workflow.cp, 'optimal_snr_merge',
+                                         ifos=workflow.ifos, out_dir=out_dir,
+                                         tags=tags)
+        llwadd_exe.update_current_retention_level(Executable.MERGED_TRIGGERS)
+        merge_node = llwadd_exe.create_node(workflow.analysis_time,
+                                            opt_snr_split_files,
+                                            use_tmp_subdirs=False)
+    else:
+        merge_inj_exe = PyCBCMergeInjectionExecutable(workflow.cp, 'optimal_snr_merge',
+                                         ifos=workflow.ifos, out_dir=out_dir,
+                                         tags=tags)
+        merge_node = merge_inj_exe.create_node(workflow.analysis_time,
+                                            opt_snr_split_files,
+                                            use_tmp_subdirs=False)
     workflow += merge_node
 
     return merge_node.output_files[0]
