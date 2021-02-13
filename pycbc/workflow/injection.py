@@ -133,8 +133,7 @@ def compute_inj_optimal_snr(workflow, inj_file, precalc_psd_files, out_dir,
                                          ifos=workflow.ifos, out_dir=out_dir,
                                          tags=tags)
         merge_node = merge_inj_exe.create_node(workflow.analysis_time,
-                                            opt_snr_split_files,
-                                            use_tmp_subdirs=False)
+                                            opt_snr_split_files)
     workflow += merge_node
 
     return merge_node.output_files[0]
