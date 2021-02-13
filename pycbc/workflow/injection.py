@@ -74,7 +74,7 @@ class PyCBCMergeInjectionExecutable(Executable):
 
     def create_node(self, workflow, inj_files):
         node = Node(self)
-        node.add_input_opt('--injection-files', inj_files)
+        node.add_input_list_opt('--injection-files', inj_files)
         node.new_output_file_opt(workflow.analysis_time, '.hdf',
                                  '--output-file')
         return node
