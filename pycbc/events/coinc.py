@@ -25,7 +25,7 @@
 coincident triggers.
 """
 
-import numpy, logging, pycbc.pnutils, copy, lal
+import numpy, logging, pycbc.pnutils, pycbc.conversions, copy, lal
 from pycbc.detector import Detector
 
 
@@ -79,6 +79,15 @@ def background_bin_from_string(background_bins, data):
             elif bin_type == 'chirp':
                 vals = pycbc.pnutils.mass1_mass2_to_mchirp_eta(
                                                    data['mass1'], data['mass2'])[0]
+            elif bin_type == 'ratio':
+                vals = pycbc.conversions.q_from_mass1_mass2(
+                                                   data['mass1'], data['mass2'])
+            elif bin_type == 'eta':
+                vals = pycbc.pnutils.mass1_mass2_to_mchirp_eta(
+                                                   data['mass1'], data['mass2'])[1]
+            elif bin_type == 'chi_eff':
+                vals = pycbc.conversions.chi_eff(data['mass1'], data['mass2']
+                                                 data['spin1z'], data['spin2z'])[0]
             elif bin_type == 'SEOBNRv2Peak':
                 vals = pycbc.pnutils.get_freq('fSEOBNRv2Peak',
                       data['mass1'], data['mass2'], data['spin1z'], data['spin2z'])
