@@ -17,16 +17,32 @@ parser.add_argument('--verbose', action="store_true")
 parser.add_argument("--ifo", type=str,required=True)
 parser.add_argument("--trig-file", required=True)
 parser.add_argument("--idq-file", required=True,nargs='+')
+parser.add_argument('--bank-file', help='hdf format template bank file',
+                    required=True)
+parser.add_argument('--background-bins', nargs='+', help='list of background bin format strings')
 parser.add_argument("--output-file", required=True)
 parser.add_argument("--output-plot")
 
 args = parser.parse_args()
 pycbc.init_logging(args.verbose)
 
+bank = H5BankFile(args.bank_file, 'r')
+
+if args.background_bins:
+    data = {'mass1': bank['mass1'][:], 'mass2': bank['mass2'][:],
+            'spin1z': bank['spin1z'][:], 'spin2z': bank['spin2z'][:],
+            'f_lower': bank['f_lower']}
+    locs_dict = pycbc.events.background_bin_from_string(args.background_bins, data)
+    locs_names = [b.split(':')[0] for b in args.background_bins]
+else:
+    locs_dict = {'all_bin': numpy.arange(0, len(bank), 1)}
+    locs_name = ['all_bin']
+
 ifo = args.ifo
 
 trig_file = h5.File(args.trig_file,'r')
 trig_times = trig_file[ifo+'/end_time'][:]
+trig_ids = trig_file[ifo+'/template_id'][:]
 trig_file.close()
 trig_times_int = trig_times.astype('int')
 
@@ -56,20 +72,21 @@ idq_percentiles_time = {}
 for t,idq_ll in zip(idq_times,idq_logl):
     idq_percentiles_time[t] = len(idq_percentiles[idq_percentiles < idq_ll])*percent_bin/100.
 
-trig_percentile = [idq_percentiles_time[t] for t in trig_times_int]
-
-(counts, bins) = np.histogram(trig_percentile, bins = percentiles/100.)
-rates = counts/bin_time
-rates/=np.mean(rates)
-if args.output_plot:
-    plt.hist(bins[:-1],bins,weights=rates)
-    plt.xlabel('iDQ percentile')
-    plt.ylabel('Trigger rate, normalized')
-    plt.xlim(0.0,1.0)
-    plt.savefig('rates.png')
-    plt.xlim(0.9,1.0)
-    plt.savefig(args.output_plot)
-
+rate = {}
+for bin_name in locs_names:
+    bin_locs = locs_dict[bin_name]
+    trig_times_bin = trig_times_int[np.isin(trig_ids, bin_locs)] 
+    trig_percentile = [idq_percentiles_time[t] for t in trig_times_bin]
+    
+    (counts, bins) = np.histogram(trig_percentile, bins = percentiles/100.)
+    rates = counts/bin_time
+    rates/=np.mean(rates)
+    rate[bin_name] = rates
+    
 f = h5.File(args.output_file,'w')
-f['rates']=rates
+for bin_name in locs_names:
+    grp = f.create_group(bin_name)
+    grp['rates']=rate[bin_name]
+    grp['locs']=locs_dict[bin_name]
+f.attrs['names'] = locs_names
 f.close()
