@@ -46,20 +46,17 @@ def background_bin_from_string(background_bins, data):
     bins: dict
         Dictionary of location indices indexed by a bin name
     """
-    locs = None
     used = numpy.array([], dtype=numpy.uint32)
     bins = {}
     for mbin in background_bins:
+        locs = None
         name, bin_type_list, boundary_list = tuple(mbin.split(':'))
 
-        try:
-            bin_type_list = eval(bin_type_list)
-            boundary_list = eval(boundary_list)
-        except:
-            bin_type_list = [bin_type_list]
-            boundary_list = [boundary_list]
+        bin_type_list = bin_type_list.split(',')
+        boundary_list = boundary_list.split(',')
 
         for bin_type, boundary in zip(bin_type_list,boundary_list):
+            print(bin_type, boundary)
             if boundary[0:2] == 'lt':
                 member_func = lambda vals, bd=boundary : vals < float(bd[2:])
             elif boundary[0:2] == 'gt':
@@ -87,7 +84,7 @@ def background_bin_from_string(background_bins, data):
                                                    data['mass1'], data['mass2'])[1]
             elif bin_type == 'chi_eff':
                 vals = pycbc.conversions.chi_eff(data['mass1'], data['mass2'],
-                                                 data['spin1z'], data['spin2z'])[0]
+                                                 data['spin1z'], data['spin2z'])
             elif bin_type == 'SEOBNRv2Peak':
                 vals = pycbc.pnutils.get_freq('fSEOBNRv2Peak',
                       data['mass1'], data['mass2'], data['spin1z'], data['spin2z'])
@@ -105,16 +102,19 @@ def background_bin_from_string(background_bins, data):
             sub_locs = member_func(vals)
             del vals
             sub_locs = numpy.where(sub_locs)[0]
-            if locs:
+            if locs is not None:
                 # find intersection of boundary conditions
                 locs = numpy.intersect1d(locs,sub_locs)
             else:
                 locs = sub_locs
+            print(locs)
 
         # make sure we don't reuse anything from an earlier bin
         locs = numpy.delete(locs, numpy.where(numpy.in1d(locs, used))[0])
         used = numpy.concatenate([used, locs])
         bins[name] = locs
+        print(name)
+        print(locs)
 
     return bins
 
