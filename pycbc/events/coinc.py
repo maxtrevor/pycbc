@@ -56,7 +56,6 @@ def background_bin_from_string(background_bins, data):
         boundary_list = boundary_list.split(',')
 
         for bin_type, boundary in zip(bin_type_list,boundary_list):
-            print(bin_type, boundary)
             if boundary[0:2] == 'lt':
                 member_func = lambda vals, bd=boundary : vals < float(bd[2:])
             elif boundary[0:2] == 'gt':
@@ -96,6 +95,10 @@ def background_bin_from_string(background_bins, data):
                 vals = pycbc.pnutils.get_imr_duration(data['mass1'], data['mass2'],
                                    data['spin1z'], data['spin2z'], data['f_lower'],
                                                             approximant='SEOBNRv2')
+            elif bin_type == 'SEOBNRv4duration':
+                vals = pycbc.pnutils.get_imr_duration(data['mass1'], data['mass2'],
+                                   data['spin1z'], data['spin2z'], data['f_lower'],
+                                                            approximant='SEOBNRv4')
             else:
                 raise ValueError('Invalid bin type %s' % bin_type)
 
@@ -107,14 +110,11 @@ def background_bin_from_string(background_bins, data):
                 locs = numpy.intersect1d(locs,sub_locs)
             else:
                 locs = sub_locs
-            print(locs)
 
         # make sure we don't reuse anything from an earlier bin
         locs = numpy.delete(locs, numpy.where(numpy.in1d(locs, used))[0])
         used = numpy.concatenate([used, locs])
         bins[name] = locs
-        print(name)
-        print(locs)
 
     return bins
 
