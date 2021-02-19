@@ -86,7 +86,7 @@ def background_bin_from_string(background_bins, data):
                 vals = pycbc.pnutils.mass1_mass2_to_mchirp_eta(
                                                    data['mass1'], data['mass2'])[1]
             elif bin_type == 'chi_eff':
-                vals = pycbc.conversions.chi_eff(data['mass1'], data['mass2']
+                vals = pycbc.conversions.chi_eff(data['mass1'], data['mass2'],
                                                  data['spin1z'], data['spin2z'])[0]
             elif bin_type == 'SEOBNRv2Peak':
                 vals = pycbc.pnutils.get_freq('fSEOBNRv2Peak',
