@@ -36,29 +36,41 @@ len_log_like = len(log_like)
 
 times = times[log_like_ranking]
 
+log_like_dict = {}
 
-
+if not args.rate_file or args.bank_file:
+    logging.error('Must supply either a bank or dq rates file')
 
 if args.rate_file is not None:
+    rates = {}
+    locs_dict = {}
     if path.isfile(args.rate_file):
         f = h5py.File(args.rate_file,'r')
-        rates = f['rates'][:]
+        bin_names = f.attrs['names'][:]
+        for bin_name in bin_names:
+            rates = f['%s/rates'%bin_name][:]
+            locs_dict[bin_name] = f['%s/locs'%bin_name][:]
+            log_like_dict[bin_name] = log_like
+
+            l = len(rates)
+            x = int(len_log_like/l)
+
+            seg_lens = numpy.ones(l,dtype=int)*x
+            excess = len_log_like - l*x
+            seg_lens[-excess:]=seg_lens[-excess:]+1
+
+            count = 0
+            for i in range(l):
+                log_like_dict[bin_name][count:count+seg_lens[i]]=rates[i]
+                count = count+seg_lens[i]
         f.close()
-
-        l = len(rates)
-        x = int(len_log_like/l)
-
-        seg_lens = numpy.ones(l,dtype=int)*x
-        excess = len_log_like - l*x
-        seg_lens[-excess:]=seg_lens[-excess:]+1
-
-        count = 0
-        for i in range(l):
-            log_like[count:count+seg_lens[i]]=rates[i]
-            count = count+seg_lens[i]
         
     else: logging.error('Could not find binned trigger rates file')
 else:
+    bank = H5BankFile(args.bank_file, 'r')
+    bin_names = ['all_bin']
+    locs_dict = {'all_bin': numpy.arange(0, len(bank), 1)}
+
     log_like = numpy.arange(len(log_like))*100./len(log_like)
     
     p_min = int(len_log_like/2.) 
@@ -67,10 +79,16 @@ else:
     log_like[p_min:p_max] = numpy.log(log_like[p_min:p_max]/(100.-log_like[p_min:p_max]))
     log_like[p_max:] = args.max_stat
     log_like[:p_min] = 0
+    log_like_dict['all_bin'] = log_like
 
 
 f = h5py.File(args.output_file, 'w')
-f[ifo + '/dq_vals'] = numpy.array(log_like, dtype=numpy.float32)
+f.attrs['names'] = bin_names
+for bin_name in bin_names:
+    f[ifo + '/dq_vals/' + bin_name] = numpy.array(log_like_dict[bin_name], 
+                                                  dtype=numpy.float32)
+    f[ifo + '/locs/' + bin_name] = numpy.array(locs_dict[bin_name],
+                                               dtype=numpy.float32)
 f[ifo + '/times'] = numpy.array(times, dtype=numpy.uint32)
 f.attrs.create('stat', data=ifo+'-idq_ts_reference')
 f.attrs.create('dq_type', data='idq')
