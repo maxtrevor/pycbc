@@ -1768,31 +1768,49 @@ class iDQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
         self.idq_val_by_time= {}
         for i in self.bg_ifos_idq:
             self.idq_val_by_time[i] = self.assign_idq_val(i)
+            self.dq_bin_by_id[i] = self.assign_bin_id(i)
+
+    def assign_bin_id(self, ifo):
+        ref_file = self.files[ifo+'-idq_ts_reference']
+        # somehow make an array called idq_pairs, consisting of ordered pairs [time,idq_val]
+        # maybe something along the lines of the following
+        bin_names = ref_file.attrs['names'] [:]
+        locs = []
+        names = []
+        for bin_name in bin_names:
+            bin_locs = f[ifo + '/locs/' + bin_name][:]
+            locs = list(locs)+list(bin_locs) 
+            names = list(names)+list([bin_name*len(bin_locs))
+        bin_dict = dict(zip(locs,names))
+        return bin_dict
 
     def assign_idq_val(self, ifo):
         ref_file = self.files[ifo+'-idq_ts_reference']
         # somehow make an array called idq_pairs, consisting of ordered pairs [time,idq_val]
         # maybe something along the lines of the following
         times = ref_file[ifo+'/times'][:]
-        idq_vals = ref_file[ifo+'/dq_vals'][:]
-        idq_pairs = dict(zip(times,idq_vals))
-        return idq_pairs
+        bin_names = ref_file.attrs['names'] [:]
+        idq_dict = {]
+        for bin_name in bin_names:
+            idq_vals = ref_file[ifo+'/dq_vals/'+bin_name][:]
+            idq_dict[bin_name] = dict(zip(times,idq_vals))
+        return idq_dict
 
     def find_idq_val(self, trigs):
         """Get idq values for a specific ifo and times"""
         try:
-            time = trigs['end_time']
+            time = trigs['end_time'].astype('int')
+            tnum = trigs.template_num
             ifo = trigs.ifo
         except AttributeError:
-            time = trigs['end_time']
+            time = trigs['end_time'].astype('int')
+            tnum = trigs['template_id']
             assert len(self.ifos) == 1
             # Should be exactly one ifo provided
             ifo = self.ifos[0]
-        # idq_val_by_time is a dictionary of arrays of ordered pairs of [time, idq_val]
-        # indexed by ifo
         idqi = numpy.zeros(len(time))
-        for (i,t) in enumerate(time):
-            idqi[i] = self.idq_val_by_time[ifo][int(t)]
+        bin_name = self.dq_bin_by_id[ifo][tnum]
+        idqi = self.idq_val_by_time[ifo][bin_name][time]
         return idqi
 
     def lognoiserate(self, trigs):
