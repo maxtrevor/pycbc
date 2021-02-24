@@ -515,6 +515,9 @@ for dqf in dqfiles:
     outdir = rdir['data_quality/%s_trigger_rates' % dqf.ifo]
     wf.make_dq_trigger_rate_plot(workflow, [dqf], outdir, tags=['full_data'])
 
+    outdir = rdir['data_quality/%s_percentiles' % dqf.ifo]
+    wf.make_dq_percentile_plot(workflow, [dqf], outdir, tags=['full_data'])
+
 # DQ background binning plot
 if workflow.cp.has_option_tags('bin_trigger_rates_idq', 'background-bins',
                                 tags=None):
