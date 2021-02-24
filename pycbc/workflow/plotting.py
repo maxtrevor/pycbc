@@ -55,7 +55,8 @@ class PlotExecutable(Executable):
         node.set_priority(1000)
         return node
 
-def make_template_plot(workflow, bank_file, out_dir, tags=None):
+def make_template_plot(workflow, bank_file, out_dir,bins=None, 
+                       tags=None):
     tags = [] if tags is None else tags
     makedir(out_dir)
     node = PlotExecutable(workflow.cp, 'plot_bank', ifos=workflow.ifos,
@@ -64,6 +65,7 @@ def make_template_plot(workflow, bank_file, out_dir, tags=None):
 
     if workflow.cp.has_option_tags('workflow-coincidence', 'background-bins', tags=tags):
         bins = workflow.cp.get_opt_tags('workflow-coincidence', 'background-bins', tags=tags)
+    if bins:
         node.add_opt('--background-bins', bins)
 
     node.new_output_file_opt(workflow.analysis_time, '.png', '--output-file')
@@ -499,19 +501,30 @@ def make_dq_trigger_rate_plot(workflow, dq_files, out_dir, exclude=None,
                      require=None, tags=None):
     tags = [] if tags is None else tags
     makedir(out_dir)
-    secs = requirestr(workflow.cp.get_subsections('plot_dqtriggerrate'), require)
+    secs = requirestr(workflow.cp.get_subsections('plot_dqtriggerrate'), 
+                      require)
     secs = excludestr(secs, exclude)
     files = FileList([])
     for tag in secs:
         for dq_file in dq_files:
-            node = PlotExecutable(workflow.cp, 'plot_dqtriggerrate',
-                        ifos=dq_file.ifo,
-                        out_dir=out_dir,
-                        tags=[tag] + tags).create_node()
-            node.add_opt('--ifo', dq_file.ifo)
-            node.add_input_opt('--dq-file', dq_file)
-            node.new_output_file_opt(dq_file.segment, '.png', '--output-file')
-            workflow += node
-            files += node.output_files
+            if workflow.cp.has_option_tags('bin_trigger_rates_idq', 
+                                           'background-bins', tags=tags):
+                background_bins = \
+                              workflow.cp.get_opt_tags('bin_trigger_rates_idq',
+                                                  'background-bins', tags=tags)
+                bin_names = [tuple(bbin.split(':'))[0] for bbin 
+                                                 in background_bins.split(' ')]
+            else: bin_names = ['all_bin']
+            for bbin in bin_names:
+                node = PlotExecutable(workflow.cp, 'plot_dqtriggerrate',
+                            ifos=dq_file.ifo,
+                            out_dir=out_dir,
+                            tags=[tag] + [bbin] + tags).create_node()
+                node.add_opt('--ifo', dq_file.ifo)
+                node.add_opt('--background-bin', bbin)
+                node.add_input_opt('--dq-file', dq_file)
+                node.new_output_file_opt(dq_file.segment, '.png', '--output-file')
+                workflow += node
+                files += node.output_files
     return files
 

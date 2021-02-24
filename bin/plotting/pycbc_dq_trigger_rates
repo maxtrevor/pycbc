@@ -4,6 +4,7 @@
 import logging
 import sys
 import argparse
+import numpy
 import pycbc
 import h5py
 from matplotlib import use; use('Agg')
@@ -16,7 +17,8 @@ parser.add_argument('--version', action='version', version=version)
 parser.add_argument('--verbose', action="store_true")
 parser.add_argument("--ifo", type=str,required=True)
 parser.add_argument("--dq-file", required=True)
-parser.add_argument('--log-y', action='store_true', default=False)
+#parser.add_argument('--log-y', action='store_true', default=False)
+parser.add_argument('--background-bin', default='all_bin')
 parser.add_argument("--output-file", required=True)
 args = parser.parse_args()
 
@@ -26,8 +28,15 @@ ifo = args.ifo
 
 f = h5py.File(args.dq_file, 'r')
 
+bin_name = args.background_bin
+
+if bin_name not in f['%s/dq_vals'%ifo].keys():
+    raise ValueError("Background bin name not found in DQ file")
+else:
+    yvals = f['%s/dq_vals/%s'%(ifo,bin_name)][:]
+
+print(max(yvals))
 xvals = f['%s/times'%ifo][:]
-yvals = f['%s/dq_vals'%ifo][:]
 dq_name = f.attrs['dq_type'] 
 
 xmax = max(xvals) + 0.2 * (max(xvals)-min(xvals))
@@ -39,27 +48,46 @@ color = pycbc.results.ifo_color(ifo)
 
 # create a figure to add a histogram
 fig = pyplot.figure(0)
+ax = fig.add_subplot(111)
 
-pyplot.scatter(xvals,yvals,
-               label=' '.join([ifo,dq_name]), edgecolor='none', 
+ax.scatter(xvals,yvals,
+               label=' '.join([ifo,dq_name,bin_name]), edgecolor='none', 
                s=1, color=color)
-pyplot.legend(loc='upper left', markerscale=5)
+ax.legend(loc='upper left', markerscale=5)
 
 # format plot
-if args.log_y:
-    pyplot.yscale('log')
-pyplot.ylabel('Relative trigger rate')
-pyplot.xlabel('Time (s)')
-pyplot.ylim(ymin=1,ymax=ymax)
-pyplot.xlim(xmin=xmin,xmax=xmax)
-
+#if args.log_y:
+#    pyplot.yscale('log')
+ax.set_ylabel('Data quality log likelihood')
+ax.set_xlabel('Time (s)')
+ax.set_ylim(ymin=0,ymax=ymax)
+ax.set_xlim(xmin=xmin,xmax=xmax)
 
 # add a grid to the plot
-pyplot.grid()
+ax.grid()
+
+yticks = ax.get_yticks()
+print(yticks)
+
+# add second axis
+ax2=ax.twinx()
+ax2_ymax = numpy.exp(ymax)
+ax2.set_ylim(1,ax2_ymax)
+#print(10**ymax)
+#print(numpy.arange(0,numpy.ceil(ymax),1))
+#ytick_exp = numpy.arange(0,numpy.ceil(ymax),1)
+#ax2.set_yticks([10**e for e in ytick_exp])
+ax2.plot(xmax+1e9,100)
+new_ticks = range(0,int(numpy.ceil(numpy.log10(ax2_ymax))))
+ax2.set_yticks([10**t for t in new_ticks])
+#ax2.set_yticklabels = ([10**t for t in new_ticks])
+ax2.set_ylabel('Relative Trigger Rate')
+ax2.set_xlim(xmin, xmax)
+ax2.set_yscale('log')
 
 # add meta data and save figure
 pycbc.results.save_fig_with_metadata(fig, args.output_file,
                 title = '%s: %s log likelihood versus time' % (ifo, dq_name),
-                caption = 'Log likelihood verus time of a DQ product',
+                caption = 'The log likelihood verus time of a DQ product.',
                 cmd = ' '.join(sys.argv))
 

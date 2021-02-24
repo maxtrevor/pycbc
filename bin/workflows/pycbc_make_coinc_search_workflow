@@ -182,8 +182,10 @@ insps = wf.merge_single_detector_hdf_files(workflow, hdfbank,
 # 'dqfiles' is the subset of files containing data quality information
 statfiles = []
 dqfiles = []
-idq_files = wf.setup_idq_reranking(workflow, insps, analyzable_segs, analyzable_file, 
-                                    output_dir='idq',tags=['full_data'])
+idq_files = wf.setup_idq_reranking(workflow, insps, hdfbank,
+                                   analyzable_segs, analyzable_file, 
+                                   output_dir='idq',
+                                   tags=['full_data'])
 statfiles += idq_files
 dqfiles += idq_files
 statfiles += wf.setup_trigger_fitting(workflow, insps, hdfbank,
@@ -508,9 +510,18 @@ for key in final_bg_files:
 
 #################### Plotting of data quality results #########################
 
+# DQ log likelihood plots
 for dqf in dqfiles:
     outdir = rdir['data_quality/%s_trigger_rates' % dqf.ifo]
     wf.make_dq_trigger_rate_plot(workflow, [dqf], outdir, tags=['full_data'])
+
+# DQ background binning plot
+if workflow.cp.has_option_tags('bin_trigger_rates_idq', 'background-bins',
+                                tags=None):
+    background_bins = workflow.cp.get_opt_tags('bin_trigger_rates_idq',
+                                               'background-bins',tags=None)
+    wf.make_template_plot(workflow, hdfbank, rdir['data_quality'], 
+                          bins=background_bins, tags=['dq_bins'])
 
 ############################## Setup the injection runs #######################
 

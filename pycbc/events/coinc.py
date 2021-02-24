@@ -67,7 +67,7 @@ def background_bin_from_string(background_bins, data):
             if bin_type == 'component' and boundary[0:2] == 'lt':
                 # maximum component mass is less than boundary value
                 vals = numpy.maximum(data['mass1'], data['mass2'])
-            if bin_type == 'component' and boundary[0:2] == 'gt':
+            elif bin_type == 'component' and boundary[0:2] == 'gt':
                 # minimum component mass is greater than bdary
                 vals = numpy.minimum(data['mass1'], data['mass2'])
             elif bin_type == 'total':
