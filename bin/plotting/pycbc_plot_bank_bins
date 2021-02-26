@@ -54,6 +54,11 @@ class H5BankFile(h5py.File):
         'Mass ratio'
         return self.mass1_param() / self.mass2_param()
 
+    def eta_param(self):
+        'Symmetric mass ratio'
+        return pycbc.pnutils.mass1_mass2_to_mchirp_eta(
+                self.mass1_param(), self.mass2_param())[1]
+
     def effective_spin_param(self):
         'Effective spin z-component'
         return (self.spin1z_param() * self.mass1_param() + self.spin2z_param() * self.mass2_param()) / self.total_mass_param()
