@@ -161,8 +161,12 @@ splitbank_files_fd = wf.setup_splittable_workflow(workflow, [hdfbank],
                                                   out_dir="bank",
                                                   tags=['full_data'])
 
+bank_tags = []
+if 'mass1_mass2' in workflow.cp.get_subsections('plot_bank'):
+    bank_tags=['mass1_mass2']
 bank_plot = wf.make_template_plot(workflow, hdfbank,
-                                  rdir['coincident_triggers'])
+                                  rdir['coincident_triggers'],
+                                  tags=bank_tags)
 
 
 ######################## Setup the FULL DATA run ##############################
@@ -523,8 +527,11 @@ if workflow.cp.has_option_tags('bin_trigger_rates_idq', 'background-bins',
                                 tags=None):
     background_bins = workflow.cp.get_opt_tags('bin_trigger_rates_idq',
                                                'background-bins',tags=None)
-    wf.make_template_plot(workflow, hdfbank, rdir['data_quality'], 
-                          bins=background_bins, tags=['dq_bins'])
+    bank_tags = workflow.cp.get_subsections('plot_bank')
+    if len(bank_tags) == 0: bank_tags=['bank']
+    for b_tag in bank_tags: 
+        wf.make_template_plot(workflow, hdfbank, rdir['data_quality'], 
+                              bins=background_bins, tags=['dq_bins',b_tag])
 
 ############################## Setup the injection runs #######################
 
