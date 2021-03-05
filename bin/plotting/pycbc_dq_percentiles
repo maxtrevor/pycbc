@@ -20,6 +20,7 @@ parser.add_argument("--dq-file", required=True)
 parser.add_argument('--background-bin', default='all_bin')
 parser.add_argument("--x-max",default=100)
 parser.add_argument("--x-min",default=0)
+parser.add_argument('--log-x', action="store_true")
 parser.add_argument("--output-file", required=True)
 args = parser.parse_args()
 
@@ -43,6 +44,9 @@ dq_name = f.attrs['dq_type']
 xmax = float(args.x_max)
 xmin = float(args.x_min)
 
+if args.log_x and xmin==0:
+    raise ValueError("Cannot set the x axis to log scale when xmin=0")
+
 ymax = 1.2 * max(yvals)
 
 color = pycbc.results.ifo_color(ifo)
@@ -62,6 +66,8 @@ ax.set_ylabel('Data quality log likelihood')
 ax.set_xlabel('Percentile')
 ax.set_ylim(ymin=0,ymax=ymax)
 ax.set_xlim(xmin=xmin,xmax=xmax)
+if args.log_x:
+    ax.set_xscale('log')
 
 # add a grid to the plot
 ax.grid()
