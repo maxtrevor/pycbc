@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+""" Bin triggers by their idq logl and calculate trigger rates in each bin
+"""
+import logging
+import argparse
+import pycbc
+import pycbc.events
+from pycbc.events import ranking
+import numpy as np
+import h5py as h5
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from pycbc.version import git_verbose_msg as version
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--version', action='version', version=version)
+parser.add_argument('--verbose', action="store_true")
+parser.add_argument("--ifo", type=str,required=True)
+parser.add_argument("--trig-file", required=True)
+parser.add_argument("--sngl-stat", default="new_snr",
+                    choices=ranking.sngls_ranking_function_dict.keys(),
+                    help="Function of SNR and chisq to threshold on")
+parser.add_argument("--stat-threshold", type=float,
+                    help="Only consider triggers with statistic value above this "
+                    "threshold")
+parser.add_argument("--idq-file", required=True,nargs='+')
+parser.add_argument('--bank-file', help='hdf format template bank file',
+                    required=True)
+parser.add_argument('--background-bins', nargs='+', help='list of background bin format strings')
+parser.add_argument("--output-file", required=True)
+parser.add_argument("--output-plot")
+
+args = parser.parse_args()
+pycbc.init_logging(args.verbose)
+
+bank = h5.File(args.bank_file, 'r')
+
+if args.background_bins:
+    logging.info('Sorting bank into bins...')
+    data = {'mass1': bank['mass1'][:], 'mass2': bank['mass2'][:],
+            'spin1z': bank['spin1z'][:], 'spin2z': bank['spin2z'][:],
+            'f_lower': bank['f_lower']}
+    locs_dict = pycbc.events.background_bin_from_string(args.background_bins, data)
+    locs_names = [b.split(':')[0] for b in args.background_bins]
+else:
+    locs_dict = {'all_bin': numpy.arange(0, len(bank['mass1'][:]), 1)}
+    locs_name = ['all_bin']
+
+logging.info('Reading trigger file...')
+ifo = args.ifo
+trig_file = h5.File(args.trig_file,'r')
+trig_times = trig_file[ifo+'/end_time'][:]
+trig_ids = trig_file[ifo+'/template_id'][:]
+
+if args.stat_threshold:
+    logging.info('Calculating stat and filtering...')
+    stat = ranking.get_sngls_ranking_from_trigs(trig_file[ifo],
+                                                args.sngl_stat)
+    abovethresh = stat >= args.stat_threshold
+    stat = stat[abovethresh]
+    trig_ids = trig_ids[abovethresh]
+    trig_times = trig_times[abovethresh]
+    del stat
+trig_file.close()
+
+trig_times_int = trig_times.astype('int')
+del trig_times
+
+idq_times = np.array([])
+idq_logl = np.array([])
+
+for filename in args.idq_file:
+    logging.info('Reading DQ file %s...'%filename)
+    g = h5.File(filename, 'r')
+    g_logl = g[ifo + '/log_likelihood'][:]
+    g_times = g[ifo + '/times'][:]
+    g.close()
+    idq_logl = np.concatenate((idq_logl,g_logl))
+    idq_times = np.concatenate((idq_times,g_times))
+
+t0 = np.min(idq_times)
+t1 = np.max(idq_times)
+t = t1-t0
+
+percent_bin = 0.5
+bin_time = t/percent_bin*100
+percentiles = np.linspace(0,100,int(1+100./percent_bin))
+
+idq_percentiles = np.percentile(idq_logl,percentiles)
+
+idq_percentiles_time = {}
+for t,idq_ll in zip(idq_times,idq_logl):
+    idq_percentiles_time[t] = len(idq_percentiles[idq_percentiles < idq_ll])*percent_bin/100.
+
+rate = {}
+for bin_name in locs_names:
+    logging.info('Processing bin %s...'%bin_name)
+    bin_locs = locs_dict[bin_name]
+    trig_times_bin = trig_times_int[np.isin(trig_ids, bin_locs)] 
+    trig_percentile = [idq_percentiles_time[t] for t in trig_times_bin]
+    logging.info('Processing %d triggers...'%len(trig_percentile))
+    
+    (counts, bins) = np.histogram(trig_percentile, bins = percentiles/100.)
+    rates = counts/bin_time
+    rates/=np.mean(rates)
+    rate[bin_name] = rates
+    
+logging.info('Writing output file %s...'%args.output_file)
+f = h5.File(args.output_file,'w')
+for bin_name in locs_names:
+    print(bin_name, max(rate[bin_name]))
+    grp = f.create_group(bin_name)
+    grp['rates']=rate[bin_name]
+    grp['locs']=locs_dict[bin_name]
+f.attrs['names'] = locs_names
+f.close()

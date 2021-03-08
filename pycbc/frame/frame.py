@@ -23,6 +23,7 @@ import numpy
 import math
 import os.path, glob, time
 import gwdatafind
+import pycbc
 from six.moves.urllib.parse import urlparse
 from pycbc.types import TimeSeries, zeros
 
@@ -600,7 +601,6 @@ class DataBuffer(object):
             name = '%s/%s-%s-%s.gwf' % (pattern, self.beg, s, self.dur)
             # check that file actually exists, else abort now
             if not os.path.exists(name):
-                logging.info("%s not found yet", os.path.basename(name))
                 raise RuntimeError
 
             keys.append(name)
@@ -636,14 +636,14 @@ class DataBuffer(object):
             return DataBuffer.advance(self, blocksize)
 
         except RuntimeError:
-            if lal.GPSTimeNow() > timeout + self.raw_buffer.end_time:
+            if pycbc.gps_now() > timeout + self.raw_buffer.end_time:
                 # The frame is not there and it should be by now, so we give up
                 # and treat it as zeros
                 DataBuffer.null_advance(self, blocksize)
                 return None
             else:
                 # I am too early to give up on this frame, so we should try again
-                time.sleep(1)
+                time.sleep(0.1)
                 return self.attempt_advance(blocksize, timeout=timeout)
 
 class StatusBuffer(DataBuffer):

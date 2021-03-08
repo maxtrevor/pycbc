@@ -38,7 +38,7 @@ setup_requires = ['numpy>=1.16.0']
 install_requires =  setup_requires + ['Mako>=1.0.1',
                       'cython>=0.29',
                       'decorator>=3.4.2',
-                      'numpy>=1.16.0,<1.19; python_version >= "3.5"',
+                      'numpy>=1.16.0,!=1.19.0,<1.20.0; python_version >= "3.5"',
                       'numpy>=1.16.0,<1.17.0; python_version <= "2.7"',
                       'scipy>=0.16.0; python_version >= "3.5"',
                       'scipy>=0.16.0,<1.3.0; python_version <= "3.4"',
@@ -124,7 +124,7 @@ def get_version_info():
         vinfo = _version_helper.generate_git_version_info()
     except:
         vinfo = vdummy()
-        vinfo.version = '1.16.dev10'
+        vinfo.version = '1.17.dev2'
         vinfo.release = 'False'
 
     with open('pycbc/version.py', 'w') as f:
@@ -212,15 +212,22 @@ cythonext = ['waveform.spa_tmplt',
 ext = []
 cython_compile_args = ['-O3', '-w', '-ffast-math',
                        '-ffinite-math-only']
+
 if platform.machine() == 'x86_64':
     cython_compile_args.append('-msse4.2')
 cython_link_args = []
+
 # Mac's clang compiler doesn't have openMP support by default. Therefore
 # disable openmp builds on MacOSX. Optimization should never really be a
 # concern on that OS, and this line can be commented out if needed anyway.
+# Mac's also alias gcc and can run into troubles getting libc correctly
 if not sys.platform == 'darwin':
     cython_compile_args += ['-fopenmp']
     cython_link_args += ['-fopenmp']
+else:
+    cython_compile_args += ["-stdlib=libc++"]
+    cython_link_args += ["-stdlib=libc++"]
+
 for name in cythonext:
     e = Extension("pycbc.%s_cpu" % name,
                   ["pycbc/%s_cpu.pyx" % name.replace('.', '/')],
