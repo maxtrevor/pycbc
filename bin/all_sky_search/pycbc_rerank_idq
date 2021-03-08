@@ -37,6 +37,7 @@ log_like_ranking = numpy.argsort(log_like)
 len_log_like = len(log_like)
 
 times = times[log_like_ranking]
+log_like_vals = log_like[log_like_ranking]
 
 log_like_dict = {}
 percent_dict = {}
@@ -102,6 +103,7 @@ for bin_name in bin_names:
     f[ifo + '/locs/' + bin_name] = numpy.array(locs_dict[bin_name],
                                                dtype=numpy.float32)
 f[ifo + '/times'] = numpy.array(times, dtype=numpy.uint32)
+f[ifo + '/dq_input_vals'] = numpy.array(log_like_vals, dtype=numpy.uint32)
 f.attrs.create('stat', data=ifo+'-idq_ts_reference')
 f.attrs.create('dq_type', data='idq')
 f.close()
