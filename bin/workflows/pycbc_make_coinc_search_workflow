@@ -132,7 +132,6 @@ save_fig_with_metadata(time_str, time_file.storage_path, **kwds)
 sci_seg_name = 'science'
 science_seg_file = wf.get_segments_file(workflow, sci_seg_name, 'segments-science',
                                         rdir['analysis_time/segment_data'])
-
 ssegs = {}
 for ifo in workflow.ifos:
     ssegs[ifo] = science_seg_file.segment_dict["%s:science" % ifo]
@@ -149,6 +148,16 @@ final_veto_name = 'vetoes'
 final_veto_file = wf.get_segments_file(workflow, final_veto_name,
                                        'segments-vetoes',
                                        rdir['analysis_time/segment_data'])
+
+# Get C02 segments from file
+cat2_flag_name = 'cat2'
+cat2_file = wf.get_segments_file(workflow, cat2_flag_name,
+                                       'segments-cat2',
+                                       rdir['analysis_time/segment_data'])
+cat2_ts_file = wf.create_cat2_timeseries(workflow, cat2_file,
+                                         cat2_flag_name,
+                                         'segments-cat2',
+                                         rdir['analysis_time/segment_data'])
 
 # Template bank stuff
 hdfbank = wf.setup_tmpltbank_workflow(workflow, analyzable_segs,
@@ -196,7 +205,7 @@ statfiles += wf.setup_trigger_fitting(workflow, insps, hdfbank,
                                       final_veto_file, final_veto_name,
                                       output_dir=output_dir,
                                       tags=['full_data'])
-
+statfiles += wf.setup_flag_reranking(workflow, analyzable_segs, analyzable_file, output_dir='dq_flag')
 # Set up the multi-ifo coinc jobs
 # final_bg_files contains coinc results using vetoes final_veto_files
 # ifo_ids will store an (integer) index for each ifo in the precedence list

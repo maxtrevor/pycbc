@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+""" 
+    Convert veto definer into timeseries
+"""
+
+import logging, argparse, numpy, h5py, multiprocessing, time, copy
+from six.moves import (range, zip_longest)
+from pycbc.version import git_verbose_msg as version
+from pycbc.fft.fftw import set_measure_level
+from ligo.segments import segmentlist, segment
+set_measure_level(0)
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--version', action='version', version=version)
+parser.add_argument('--verbose', action="store_true")
+parser.add_argument('--cat2-segments', required=True)
+parser.add_argument('--flag', type=str, required=True)
+parser.add_argument('--ifo', type=str,required=True)
+parser.add_argument('--gps-start-time', type=int,required=True)
+parser.add_argument('--gps-end-time', type=int,required=True)
+parser.add_argument('--output-file', required=True)
+
+
+def get_cat2(segs, start, end):
+    """ Get dq timeseries for the selected cat2 flags
+    """
+    
+    logging.info('Creating dq timeseries %.1f-%.1f (%.1f s)', start,
+                 end, abs(end-start))
+    
+    # dq_step_size = float(args.dq_step_size)
+    dq_ts = np.zeros(int(end_time-start_time))
+    indexes = np.concatenate([np.array(np.arange(segs[0]- start_time, segs[1] - start_time).astype(int)) for segs in segs])
+    dq_ts[indexes] = 1
+    dq_ts = ts.astype(int)
+
+    # figure out list of times
+    dq_times = numpy.arange(start_time, end_time)
+    
+    return dq_ts, times_idq
+
+
+ifo = args.ifo
+flag = args.flag
+
+
+from pycbc.veto import select_segments_by_definer
+args.flag = sum(args.segment_name, [])
+args.cat2_segments = sum(args.cat2_segments, [])
+logging.info('Taking this flag %s for this ifo %s', args.flag,
+             ifo)
+for vfile, name in zip(args.cat2_segments, args.flag):
+    segs = veto.select_segments_by_definer(vfile, ifo=ifo,
+                                           segment_name=name)
+
+logging.info('Creating dq timeseries %.1f-%.1f (%.1f s)', start,
+             end, abs(end-start))
+
+
+dq_ts = get_cat2(segs, args.gps_start_time, args.gps_end_time)
+
+f = h5py.File(args.output_file, 'w')
+start, end = [args.gps_start_time], [args.gps_end_time]
+
+f[ifo + flag + '/start_time'] = numpy.array(start, dtype=numpy.uint32)
+f[ifo + flag + '/end_time'] = numpy.array(end, dtype=numpy.uint32)
+f[ifo + flag + '/flag'] = numpy.array(dq_ts[0], dtype=numpy.uint32)
+f[ifo + flag + '/times'] = numpy.array(dq_ts[1], dtype=numpy.uint32)
+
+logging.info('Done!')
+
+

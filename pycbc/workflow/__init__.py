@@ -45,6 +45,7 @@ try:
     from pycbc.workflow.plotting import *
     from pycbc.workflow.minifollowups import *
     from pycbc.workflow.idq import *
+    from pycbc.workflow.cat2 import *
 except ImportError:
     pass
 
