@@ -205,7 +205,8 @@ statfiles += wf.setup_trigger_fitting(workflow, insps, hdfbank,
                                       final_veto_file, final_veto_name,
                                       output_dir=output_dir,
                                       tags=['full_data'])
-statfiles += wf.setup_flag_reranking(workflow, analyzable_segs, analyzable_file, output_dir='dq_flag')
+# statfiles += wf.setup_flag_reranking(workflow, analyzable_segs, analyzable_file, output_dir='dq_flag')
+
 # Set up the multi-ifo coinc jobs
 # final_bg_files contains coinc results using vetoes final_veto_files
 # ifo_ids will store an (integer) index for each ifo in the precedence list

@@ -5,9 +5,9 @@
 """
 
 import logging, argparse, numpy, h5py, multiprocessing, time, copy
-from six.moves import (range, zip_longest)
 from pycbc.version import git_verbose_msg as version
 from pycbc.fft.fftw import set_measure_level
+from pycbc.events import veto
 from ligo.segments import segmentlist, segment
 set_measure_level(0)
 
@@ -21,42 +21,42 @@ parser.add_argument('--gps-start-time', type=int,required=True)
 parser.add_argument('--gps-end-time', type=int,required=True)
 parser.add_argument('--output-file', required=True)
 
+args = parser.parse_args()
+pycbc.init_logging(args.verbose)
 
-def get_cat2(segs, start, end):
-    """ Get dq timeseries for the selected cat2 flags
+
+def get_cat2(segs, start_time, end_time):
+    """ Get dq timeseries for the selected cat2 flag
     """
     
-    logging.info('Creating dq timeseries %.1f-%.1f (%.1f s)', start,
-                 end, abs(end-start))
-    
+    logging.info('Creating dq timeseries %.1f-%.1f (%.1f s)', start_time,
+                 end_time, abs(end_time-start_time))
     # dq_step_size = float(args.dq_step_size)
-    dq_ts = np.zeros(int(end_time-start_time))
-    indexes = np.concatenate([np.array(np.arange(segs[0]- start_time, segs[1] - start_time).astype(int)) for segs in segs])
-    dq_ts[indexes] = 1
+    dq_ts = numpy.zeros(int(end_time-start_time))
+
+    if not segs:
+        logging.warning('Veto definer segment list is empty for flag %s-%s', 
+                        args.ifo, args.flag[1:])
+    else:
+        indexes = numpy.concatenate([numpy.array(numpy.arange(
+            segs[0] - start_time, segs[1] - start_time).astype(int)) for segs in segs])
+        dq_ts[indexes] = 1
     dq_ts = ts.astype(int)
 
     # figure out list of times
     dq_times = numpy.arange(start_time, end_time)
     
-    return dq_ts, times_idq
-
+    return dq_ts, dq_times
 
 ifo = args.ifo
 flag = args.flag
 
-
-from pycbc.veto import select_segments_by_definer
-args.flag = sum(args.segment_name, [])
+args.flag = sum(args.flag, [])
 args.cat2_segments = sum(args.cat2_segments, [])
-logging.info('Taking this flag %s for this ifo %s', args.flag,
-             ifo)
+logging.info('Taking this flag %s for this ifo %s', args.flag, ifo)
 for vfile, name in zip(args.cat2_segments, args.flag):
     segs = veto.select_segments_by_definer(vfile, ifo=ifo,
-                                           segment_name=name)
-
-logging.info('Creating dq timeseries %.1f-%.1f (%.1f s)', start,
-             end, abs(end-start))
-
+                                      segment_name=name)
 
 dq_ts = get_cat2(segs, args.gps_start_time, args.gps_end_time)
 
@@ -69,5 +69,3 @@ f[ifo + flag + '/flag'] = numpy.array(dq_ts[0], dtype=numpy.uint32)
 f[ifo + flag + '/times'] = numpy.array(dq_ts[1], dtype=numpy.uint32)
 
 logging.info('Done!')
-
-
