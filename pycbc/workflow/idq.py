@@ -94,7 +94,7 @@ def setup_idq_reranking(workflow, insps, bank,
                                                    'bin_trigger_rates_idq', ifos=ifo,
                                                    out_dir=output_dir,
                                                    tags=tags)
-            intermediate_node = intermediate_exe.create_node(ifo, workflow, idq_files, 
+            intermediate_node = intermediate_exe.create_node(workflow, ifo, idq_files, 
                                                              ifo_insp, bank)
             workflow += intermediate_node
             binned_rate_file = intermediate_node.output_file
@@ -103,7 +103,7 @@ def setup_idq_reranking(workflow, insps, bank,
                                                    'rerank_idq', ifos=ifo,
                                                    out_dir=output_dir,
                                                    tags=tags)
-            new_node = new_exe.create_node(ifo, workflow, idq_files, binned_rate_file)
+            new_node = new_exe.create_node(workflow, ifo, idq_files, binned_rate_file)
             workflow += new_node
             output += new_node.output_files
     else:
