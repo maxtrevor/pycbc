@@ -42,23 +42,23 @@ class PyCBCCalculateiDQExecutable(Executable):
 
 class PyCBCRerankiDQExecutable(Executable):    
     current_retention_level = Executable.MERGED_TRIGGERS
-    def create_node(self, ifo, idq_files, binned_rate_file):
+    def create_node(self, workflow, ifo, idq_files, binned_rate_file):
         node = Node(self)
         node.add_opt('--ifo', ifo)
         node.add_input_list_opt('--input-file', idq_files)
         node.add_input_opt('--rate-file', binned_rate_file)
-        node.new_output_file_opt(idq_files[0].segment, '.hdf', '--output-file')        
+        node.new_output_file_opt(workflow.analysis_time, '.hdf', '--output-file')        
         return node
     
 class PyCBCBinTriggerRatesiDQExecutable(Executable):
     current_retention_level = Executable.MERGED_TRIGGERS
-    def create_node(self, ifo, idq_files, trig_file, bank_file):
+    def create_node(self, workflow, ifo, idq_files, trig_file, bank_file):
         node = Node(self)
         node.add_opt('--ifo', ifo)
         node.add_input_opt('--bank-file', bank_file)
         node.add_input_opt('--trig-file', trig_file)
         node.add_input_list_opt('--idq-file', idq_files)
-        node.new_output_file_opt(idq_files[0].segment,'.hdf', '--output-file')
+        node.new_output_file_opt(workflow.analysis_time,'.hdf', '--output-file')
         return node
     
 def setup_idq_reranking(workflow, insps, bank,
@@ -94,7 +94,7 @@ def setup_idq_reranking(workflow, insps, bank,
                                                    'bin_trigger_rates_idq', ifos=ifo,
                                                    out_dir=output_dir,
                                                    tags=tags)
-            intermediate_node = intermediate_exe.create_node(ifo, idq_files, 
+            intermediate_node = intermediate_exe.create_node(ifo, workflow, idq_files, 
                                                              ifo_insp, bank)
             workflow += intermediate_node
             binned_rate_file = intermediate_node.output_file
@@ -103,7 +103,7 @@ def setup_idq_reranking(workflow, insps, bank,
                                                    'rerank_idq', ifos=ifo,
                                                    out_dir=output_dir,
                                                    tags=tags)
-            new_node = new_exe.create_node(ifo, idq_files, binned_rate_file)
+            new_node = new_exe.create_node(ifo, workflow, idq_files, binned_rate_file)
             workflow += new_node
             output += new_node.output_files
     else:
