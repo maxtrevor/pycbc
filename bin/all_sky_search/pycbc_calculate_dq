@@ -13,7 +13,7 @@ set_measure_level(0)
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--version', action='version', version=version)
 parser.add_argument('--verbose', action="store_true")
-parser.add_argument('--analyzable-segs', required=True)
+parser.add_argument('--science-segments', required=True)
 parser.add_argument('--cat2-segments', required=True)
 parser.add_argument('--flag', type=str, required=True)
 parser.add_argument('--ifo', type=str, required=True)
@@ -31,8 +31,8 @@ def make_cat2_ts(segs, cat2_segs, ifo, flag):
     dq_times = numpy.concatenate([numpy.arange(seg[0], seg[1]).astype(int)
                                   for seg in segs])
     dq_ts = numpy.zeros(len(dq_times))
-    indexes = veto.indices_within_segments(dq_ts, cat2_segs, ifo=args.ifo,
-                                           segment_name=args.flag)
+    indexes, _ = veto.indices_within_segments(dq_ts, cat2_segs, ifo=args.ifo,
+                                              segment_name=args.flag)
     if not indexes:
         logging.warning('Veto definer segment list is empty for flag %s-%s',
                         args.ifo, args.flag[1:])
@@ -43,11 +43,13 @@ def make_cat2_ts(segs, cat2_segs, ifo, flag):
 
 ifo = args.ifo
 flag = args.flag
+science_seg_file = args.science_segments
 
-dq_ts = make_cat2_ts(args.analyzable_segs, args.cat2_segments, ifo, flag)
+segs = science_seg_file.segment_dict["%s:science" % ifo]
+dq_ts = make_cat2_ts(segs, args.cat2_segments, ifo, flag)
 
 f = h5py.File(args.output_file, 'w')
-start, end = [args.analyzable_segs[0][0]], [args.analyzable_segs[-1][1]]
+start, end = [dq_ts[0]], [dq_ts[-1]]
 
 f[ifo + flag + '/start_time'] = numpy.array(start, dtype=numpy.uint32)
 f[ifo + flag + '/end_time'] = numpy.array(end, dtype=numpy.uint32)

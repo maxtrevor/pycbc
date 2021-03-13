@@ -154,7 +154,7 @@ cat2_flag_name = 'cat2'
 cat2_file = wf.get_segments_file(workflow, cat2_flag_name,
                                        'segments-cat2',
                                        rdir['analysis_time/segment_data'])
-cat2_ts_file = wf.create_cat2_timeseries(workflow, analyzable_segs, cat2_file,
+cat2_ts_file = wf.create_cat2_timeseries(workflow, science_seg_file, cat2_file,
                                          cat2_flag_name, 'segments-cat2',
                                          rdir['analysis_time/segment_data'])
 
