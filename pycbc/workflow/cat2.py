@@ -1,5 +1,5 @@
 import os
-import logging
+import logging, copy
 from ligo import segments
 from pycbc.workflow.core import FileList, Executable, Node, File
 from pycbc.workflow.segment import parse_cat_ini_opt
@@ -40,8 +40,10 @@ def create_cat2_timeseries(workflow, seg_file, cat2_file, cat2_name, option_name
             flag_list = flag_str.split(',')
             for flag in flag_list:
                 logging.info("Creating job for flag %s" %(flag))
-                flag_tag = tags
-                flag_tag.append(flag)
+                flag_tag = copy.copy(tags)
+                flag_tag.append(flag[1:])
+                logging.info("flag tag is %s" %(flag_tag))
+                logging.info("tag is %s" %(tags))
                 raw_exe = PyCBCCalculateDqExecutable(workflow.cp,
                                                      'calculate_dq', ifos=ifo,
                                                      out_dir=output_dir,
