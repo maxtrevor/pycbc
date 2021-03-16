@@ -22,7 +22,7 @@
 # =============================================================================
 #
 
-import os, logging, copy
+import logging, copy
 from pycbc.workflow.core import FileList, Executable, Node
 
 
