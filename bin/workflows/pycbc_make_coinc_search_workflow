@@ -149,11 +149,8 @@ final_veto_file = wf.get_segments_file(workflow, final_veto_name,
                                        'segments-vetoes',
                                        rdir['analysis_time/segment_data'])
 
-# Get C02 segments from file
+# Get C02 segments from veto definer and calculate data quality timeseries
 cat2_flag_name = 'cat2'
-# cat2_file = wf.get_segments_file(workflow, cat2_flag_name,
-#                                  'segments-cat2',
-#                                  rdir['analysis_time/segment_data'])
 cat2_file = wf.get_flag_segments_file(workflow, cat2_flag_name, 
                                       'segments-cat2',
                                       rdir['analysis_time/segment_data'])

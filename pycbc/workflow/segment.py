@@ -1507,13 +1507,13 @@ def get_flag_segments_file(workflow, name, option_name, out_dir):
         flag_str = cp.get_opt_tags("workflow-segments", option_name, [ifo])
         flag_list = flag_str.split(',')
         for flag in flag_list:
-            key = ifo + ':' + flag
+            flag_name = flag[1:]
+            key = ifo + ':' + flag_name
             segs[key] = query_str(ifo, flag, start, end,
                                   source=source, server=server,
                                   veto_definer=veto_definer)
-            logging.info("%s: got %s segments", ifo, flag)
+            logging.info("%s: got %s segments", ifo, flag_name)
     
-    # Check if from_segment_list_dict works with multiple names!
     return SegFile.from_segment_list_dict(name, segs,
                                           extension='.xml',
                                           valid_segment=workflow.analysis_time,
