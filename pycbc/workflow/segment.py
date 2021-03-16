@@ -1489,8 +1489,7 @@ def get_flag_segments_file(workflow, name, option_name, out_dir):
     # Check for provided server
     server = "https://segments.ligo.org"
     if cp.has_option("workflow-segments", "segments-database-url"):
-        server = cp.get("workflow-segments",
-                                 "segments-database-url")
+        server = cp.get("workflow-segments", "segments-database-url")
 
     source = "any"
     if cp.has_option("workflow-segments", "segments-source"):
@@ -1507,13 +1506,13 @@ def get_flag_segments_file(workflow, name, option_name, out_dir):
         flag_str = cp.get_opt_tags("workflow-segments", option_name, [ifo])
         flag_list = flag_str.split(',')
         for flag in flag_list:
-            key = ifo + ':' + flag
+            flag_name = flag[1:]
+            key = ifo + ':' + flag_name
             segs[key] = query_str(ifo, flag, start, end,
                                   source=source, server=server,
                                   veto_definer=veto_definer)
-            logging.info("%s: got %s segments", ifo, flag)
-    
-    # Check if from_segment_list_dict works with multiple names!
+            logging.info("%s: got %s segments", ifo, flag_name)
+
     return SegFile.from_segment_list_dict(name, segs,
                                           extension='.xml',
                                           valid_segment=workflow.analysis_time,

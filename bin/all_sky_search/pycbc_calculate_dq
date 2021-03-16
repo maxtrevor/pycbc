@@ -25,44 +25,40 @@ args = parser.parse_args()
 pycbc.init_logging(args.verbose)
 
 
-def make_cat2_ts(segs, cat2_segs, ifo, flag):
+def make_dq_ts(segs, cat2_segs, ifo, flag):
     """ Create a data quality timeseries
     """
     logging.info('Creating data quality timeseries for flag %s', 
                  flag[1:])
-
+    # Keep just times which belong to science_segments
     dq_times = numpy.concatenate([numpy.arange(float(seg[0]), float(seg[1])).astype(int)
                                   for seg in segs])
-    dq_ts = numpy.zeros(len(dq_times))
+    dq = numpy.zeros(len(dq_times))
+    # Identify times within segments for the chosen flag
     indexes, _ = veto.indices_within_segments(dq_times, [cat2_segs], ifo=ifo,
                                               segment_name=flag)
     if indexes.size:
-        dq_ts[indexes] = 1
+        dq[indexes] = 1
     else:
         logging.warning('Veto definer segment list is empty for flag %s-%s',
                         ifo, flag[1:])
-    return dq_ts, dq_times
+    return dq, dq_times
 
 
 ifo = args.ifo
 flag = args.flag
 
-
-# read segment definer table
+# Get science segments from file
 segs = SegFile.from_segment_xml(args.science_segments).segment_dict["%s:science" % ifo]
-# cat2_segs = SegFile.from_segment_xml(args.cat2_segments).segment_dict["%s:%s" %(ifo, flag)]
-
-# segs = science_seg_file.segment_dict["%s:science" % ifo]
-# cat2_segs = veto.select_segments_by_definer(cat_file, ifo=ifo,
-#                                             segment_name=flag)
-dq_ts = make_cat2_ts(segs, args.cat2_segments, ifo, flag)
+# Create data quality time series
+dq = make_dq_ts(segs, args.cat2_segments, ifo, flag)
 
 f = h5py.File(args.output_file, 'w')
-start, end = [dq_ts[1][0]], [dq_ts[1][-1]]
+start, end = [dq[1][0]], [dq[1][-1]]
 
 f[ifo + flag + '/start_time'] = numpy.array(start, dtype=numpy.uint32)
 f[ifo + flag + '/end_time'] = numpy.array(end, dtype=numpy.uint32)
-f[ifo + flag + '/flag'] = numpy.array(dq_ts[0], dtype=numpy.uint32)
-f[ifo + flag + '/times'] = numpy.array(dq_ts[1], dtype=numpy.uint32)
+f[ifo + flag + '/flag'] = numpy.array(dq[0], dtype=numpy.uint32)
+f[ifo + flag + '/times'] = numpy.array(dq[1], dtype=numpy.uint32)
 
 logging.info('Done!')
