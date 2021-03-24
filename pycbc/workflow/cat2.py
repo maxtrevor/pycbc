@@ -27,7 +27,8 @@ from pycbc.workflow.core import FileList, Executable, Node
 
 
 class PyCBCCalculateDqExecutable(Executable):
-    current_retention_level = Executable.ALL_TRIGGERS
+    # current_retention_level = Executable.ALL_TRIGGERS
+    current_retention_level = Executable.MERGED_TRIGGERS
 
     def create_node(self, workflow, seg_file, cat2_file, flag):
         node = Node(self)
@@ -62,7 +63,7 @@ def create_cat2_timeseries(workflow, seg_file, cat2_file, cat2_name,
                                                      out_dir=output_dir,
                                                      tags=flag_tag)
                 raw_node = raw_exe.create_node(workflow, seg_file, cat2_file,
-                                               flag_name)
+                                               flag)
                 workflow += raw_node
                 output += raw_node.output_files
     return output
