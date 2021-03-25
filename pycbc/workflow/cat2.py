@@ -63,7 +63,7 @@ def create_cat2_timeseries(workflow, seg_file, cat2_file, cat2_name,
                                                      out_dir=output_dir,
                                                      tags=flag_tag)
                 raw_node = raw_exe.create_node(workflow, seg_file, cat2_file,
-                                               flag)
+                                               flag_name)
                 workflow += raw_node
                 output += raw_node.output_files
     return output
