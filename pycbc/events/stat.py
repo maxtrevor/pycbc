@@ -1547,7 +1547,7 @@ class ExpFitSGFgBgNormStatistic(PhaseTDStatistic,
 
         # Safety against subclassing and not rethinking this
         allowed_names = ['ExpFitSGFgBgNormStatistic',
-                         'iDQExpFitSGFgBgNormStatistic']
+                         'DQExpFitSGFgBgNormStatistic']
         self._check_coinc_lim_subclass(allowed_names)
 
         if not self.has_hist:
@@ -1729,13 +1729,13 @@ class ExpFitSGPSDFgBgNormBBHStatistic(ExpFitSGFgBgNormStatistic):
         loglr += numpy.log((self.curr_mchirp / 20.0) ** (11./3.0))
         return loglr
 
-class iDQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
+class DQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
     """
-    The ExpFitSGFgBgNormStatistic with iDQ-based reranking.
+    The ExpFitSGFgBgNormStatistic with DQ-based reranking.
 
     This is the same as the ExpFitSGFgBgNormStatistic except the likelihood
     is multiplied by the relative signal rate during the relevant
-    iDQ likelihood value.
+    DQ likelihood value.
     """
 
     def __init__(self, sngl_ranking, files=None, ifos=None,
@@ -1757,48 +1757,60 @@ class iDQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
         """
         ExpFitSGFgBgNormStatistic.__init__(self, sngl_ranking, files=files,
                                            ifos=ifos, **kwargs)
-        parsed_attrs = [f.split('-') for f in self.files.keys()]
-        self.bg_ifos_idq = [at[0] for at in parsed_attrs if
-                       (len(at) == 2 and at[1] == 'idq_ts_reference')]
-        if not len(self.bg_ifos_idq):
-            raise RuntimeError("None of the statistic files has the required "
-                               "attribute called {ifo}-idq_ts_reference !")
-        if not len(self.bg_ifos_idq) == len(self.bg_ifos):
-            raise RuntimeError("Number of iDQ timeseries files must match bulk files ")
-        self.idq_val_by_time = {}
-        self.dq_bin_by_id = {}
-        for i in self.bg_ifos_idq:
-            self.idq_val_by_time[i] = self.assign_idq_val(i)
-            self.dq_bin_by_id[i] = self.assign_bin_id(i)
+        self.dq_val_by_time = {}
+        self.dq_bin_by_id = {}        
+        for k in self.files.keys():
+            parsed_attrs = k.split('-')
+            ifo = parsed_attrs[0]
+            dq_type = parsed_attrs[1]
+            dq_vals = self.assign_dq_val(k)
+            dq_bins = self.assign_bin_id(k)
+            if ifo not in self.dq_val_by_time:
+                self.dq_val_by_time[ifo]={}
+                self.dq_bin_by_id[ifo]={}
+            self.dq_val_by_time[ifo][dq_type]=dq_vals
+            self.dq_bin_by_id[ifo][dq_type]=dq_bins
+            
+#        parsed_attrs = [f.split('-') for f in self.files.keys()]
+#        self.bg_ifos_dq = [at[0] for at in parsed_attrs if
+#                       (len(at) == 3 and at[2] == 'dq_ts_reference')]
+#        if not len(self.bg_ifos_dq):
+#            raise RuntimeError("None of the statistic files has the required "
+#                               "attribute called {ifo}-{stat}-dq_ts_reference !")
+#        if not len(self.bg_ifos_dq) == len(self.bg_ifos):
+#            raise RuntimeError("Number of dq timeseries files must match bulk files ")
+#        self.dq_val_by_time = {}
+#        self.dq_bin_by_id = {}
+#        for i in self.bg_ifos_dq:
+#            self.dq_val_by_time[i] = self.assign_dq_val(i)
+#            self.dq_bin_by_id[i] = self.assign_bin_id(i)
 
-    def assign_bin_id(self, ifo):
-        ref_file = self.files[ifo+'-idq_ts_reference']
-        # somehow make an array called idq_pairs, consisting of ordered pairs [time,idq_val]
-        # maybe something along the lines of the following
-        bin_names = ref_file.attrs['names'][:]
+    def assign_bin_id(self, key):
+        ifo = key.split('-')[0]
+        dq_file = self.files[key]
+        bin_names = dq_file.attrs['names'][:]
         locs = []
-        names = []
+        names = []        
         for bin_name in bin_names:
-            bin_locs = ref_file[ifo + '/locs/' + bin_name][:]
+            bin_locs = dq_file[ifo + '/locs/' + bin_name][:]
             locs = list(locs)+list(bin_locs.astype(int)) 
             names = list(names)+list([bin_name]*len(bin_locs))
         bin_dict = dict(zip(locs,names))
         return bin_dict
 
-    def assign_idq_val(self, ifo):
-        ref_file = self.files[ifo+'-idq_ts_reference']
-        # somehow make an array called idq_pairs, consisting of ordered pairs [time,idq_val]
-        # maybe something along the lines of the following
-        times = ref_file[ifo+'/times'][:]
-        bin_names = ref_file.attrs['names'] [:]
-        idq_dict = {}
+    def assign_dq_val(self, key):
+        ifo = key.split('-')[0]
+        dq_file = self.files[key]
+        times = dq_file[ifo+'/times'][:]
+        bin_names = dq_file.attrs['names'] [:]
+        dq_dict = {}
         for bin_name in bin_names:
-            idq_vals = ref_file[ifo+'/dq_vals/'+bin_name][:]
-            idq_dict[bin_name] = dict(zip(times,idq_vals))
-        return idq_dict
+            dq_vals = dq_file[ifo+'/dq_vals/'+bin_name][:]
+            dq_dict[bin_name] = dict(zip(times,dq_vals))
+        return dq_dict
 
-    def find_idq_val(self, trigs):
-        """Get idq values for a specific ifo and times"""
+    def find_dq_val(self, trigs):
+        """Get dq values for a specific ifo and times"""
         try:
             time = trigs['end_time'].astype(int)
             tnum = trigs.template_num
@@ -1809,12 +1821,13 @@ class iDQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
             assert len(self.ifos) == 1
             # Should be exactly one ifo provided
             ifo = self.ifos[0]
-        idqi = numpy.zeros(len(time))
+        dq_val = numpy.zeros(len(time))
         bin_name = self.dq_bin_by_id[ifo][tnum]
         for (i,t) in enumerate(time):
-             idqi[i] = self.idq_val_by_time[ifo][bin_name][int(t)]
-        #idqi = self.idq_val_by_time[ifo][bin_name][time]
-        return idqi
+            for k in self.dq_val_by_time[ifo].keys():
+                val = self.dq_val_by_time[ifo][k][bin_name[i]][int(t)]
+                dq_val[i]=numpy.max(dq_val[i],val)
+        return dq_val
 
     def lognoiserate(self, trigs):
         """
@@ -1836,8 +1849,8 @@ class iDQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
         """
         logr_n = ExpFitSGFgBgNormStatistic.lognoiserate(
                     self,trigs)
-        idqi = self.find_idq_val(trigs)
-        logr_n += idqi
+        dq_val = self.find_dq_val(trigs)
+        logr_n += dq_val
         return logr_n
 
 
@@ -1851,7 +1864,7 @@ statistic_dict = {
     'exp_fit_sg_bg_rate': ExpFitSGBgRateStatistic,
     'phasetd_exp_fit_sg_fgbg_norm': ExpFitSGFgBgNormStatistic,
     'phasetd_exp_fit_sg_fgbg_bbh_norm': ExpFitSGPSDFgBgNormBBHStatistic,
-    'idq_phasetd_exp_fit_sg_fgbg_norm': iDQExpFitSGFgBgNormStatistic,
+    'dq_phasetd_exp_fit_sg_fgbg_norm': DQExpFitSGFgBgNormStatistic,
 }
 
 
