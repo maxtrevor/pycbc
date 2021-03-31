@@ -84,14 +84,17 @@ t1 = np.max(idq_times)
 t = t1-t0
 
 percent_bin = 0.5
-bin_time = t/percent_bin*100
-percentiles = np.linspace(0,100,int(1+100./percent_bin))
+n_bins = int(100./percent_bin)
+percentiles = np.linspace(0,100,n_bins+1)
+bin_times = np.zeros(n_bins)
 
 idq_percentiles = np.percentile(idq_logl,percentiles)
 
 idq_percentiles_time = {}
 for t,idq_ll in zip(idq_times,idq_logl):
-    idq_percentiles_time[t] = len(idq_percentiles[idq_percentiles < idq_ll])*percent_bin/100.
+    b = len(idq_percentiles[idq_percentiles < idq_ll])
+    idq_percentiles_time[t] = b * percent_bin/100.
+    bin_times[b]=bin_times[b]+1
 
 rate = {}
 for bin_name in locs_names:
@@ -102,7 +105,7 @@ for bin_name in locs_names:
     logging.info('Processing %d triggers...'%len(trig_percentile))
     
     (counts, bins) = np.histogram(trig_percentile, bins = percentiles/100.)
-    rates = counts/bin_time
+    rates = counts/bin_times
     rates/=np.mean(rates)
     rate[bin_name] = rates
     
