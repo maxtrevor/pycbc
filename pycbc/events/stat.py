@@ -1821,11 +1821,14 @@ class DQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
             assert len(self.ifos) == 1
             # Should be exactly one ifo provided
             ifo = self.ifos[0]
-        dq_val = numpy.zeros(len(time))
-        bin_name = self.dq_bin_by_id[ifo][tnum]
+        dq_val = numpy.zeros(len(time))        
         for (i,t) in enumerate(time):
             for k in self.dq_val_by_time[ifo].keys():
-                val = self.dq_val_by_time[ifo][k][bin_name[i]][int(t)]
+                if isinstance(tnum,int):
+                    bin_name = self.dq_bin_by_id[ifo][k][tnum]
+                else:
+                    bin_name = self.dq_bin_by_id[ifo][k][tnum[i]]
+                val = self.dq_val_by_time[ifo][k][bin_name][int(t)]
                 dq_val[i]=numpy.max(dq_val[i],val)
         return dq_val
 

@@ -42,9 +42,10 @@ if args.background_bins:
             'spin1z': bank['spin1z'][:], 'spin2z': bank['spin2z'][:],
             'f_lower': bank['f_lower']}
     locs_dict = pycbc.events.background_bin_from_string(args.background_bins, data)
+    del data
     locs_names = [b.split(':')[0] for b in args.background_bins]
 else:
-    locs_dict = {'all_bin': numpy.arange(0, len(bank['mass1'][:]), 1)}
+    locs_dict = {'all_bin': np.arange(0, len(bank['mass1'][:]), 1)}
     locs_name = ['all_bin']
 
 logging.info('Reading trigger file...')
@@ -58,7 +59,6 @@ if args.stat_threshold:
     stat = ranking.get_sngls_ranking_from_trigs(trig_file[ifo],
                                                 args.sngl_stat)
     abovethresh = stat >= args.stat_threshold
-    stat = stat[abovethresh]
     trig_ids = trig_ids[abovethresh]
     trig_times = trig_times[abovethresh]
     del stat
@@ -78,25 +78,32 @@ for filename in args.idq_file:
     g.close()
     idq_logl = np.concatenate((idq_logl,g_logl))
     idq_times = np.concatenate((idq_times,g_times))
-
-t0 = np.min(idq_times)
-t1 = np.max(idq_times)
-t = t1-t0
+del g_logl
+del g_times
 
 percent_bin = 0.5
 n_bins = int(100./percent_bin)
 percentiles = np.linspace(0,100,n_bins+1)
 bin_times = np.zeros(n_bins)
-
 idq_percentiles = np.percentile(idq_logl,percentiles)
 
-idq_percentiles_time = {}
-for t,idq_ll in zip(idq_times,idq_logl):
-    b = len(idq_percentiles[idq_percentiles < idq_ll])
-    idq_percentiles_time[t] = b * percent_bin/100.
-    bin_times[b]=bin_times[b]+1
+    
+# seconds bin tells what bin each second ends up
+seconds_bin = [len(idq_percentiles[idq_percentiles < idq_ll]) for idq_ll in idq_logl]
 
-rate = {}
+# bin times tells how much time ends up in each bin. Set any bin with zero seconds to 1 second
+# to avoid divide by zero error when calculating rates
+bin_times = [len(seconds_bin[seconds_bin==(i+1)]) for i in range(n_bins)]
+bin_times[bin_times==0]=1
+
+# create a dict to look up idq percentile at any time
+idq_percentiles_time = dict(zip(idq_times, seconds_bin*percent_bin/100))
+
+del idq_times
+del idq_logl
+del idq_percentiles
+
+f = h5.File(args.output_file,'w')
 for bin_name in locs_names:
     logging.info('Processing bin %s...'%bin_name)
     bin_locs = locs_dict[bin_name]
@@ -107,14 +114,11 @@ for bin_name in locs_names:
     (counts, bins) = np.histogram(trig_percentile, bins = percentiles/100.)
     rates = counts/bin_times
     rates/=np.mean(rates)
-    rate[bin_name] = rates
     
-logging.info('Writing output file %s...'%args.output_file)
-f = h5.File(args.output_file,'w')
-for bin_name in locs_names:
-    print(bin_name, max(rate[bin_name]))
+    logging.info('Writing rates to output file %s...'%args.output_file)
     grp = f.create_group(bin_name)
-    grp['rates']=rate[bin_name]
+    grp['rates']=rates
     grp['locs']=locs_dict[bin_name]
+ 
 f.attrs['names'] = locs_names
 f.close()
