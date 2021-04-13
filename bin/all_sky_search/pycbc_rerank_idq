@@ -15,6 +15,7 @@ parser.add_argument("--max-stat", type=float,default=8)
 parser.add_argument("--input-file", required=True,nargs='+')
 parser.add_argument("--rate-file", type = str, default = None)
 parser.add_argument("--bank-file", type = str, default = None)
+parser.add_argument("--dq-type", type = str, default = 'dq')
 parser.add_argument("--output-file", required=True)
 
 args = parser.parse_args()
@@ -104,8 +105,7 @@ for bin_name in bin_names:
                                                dtype=numpy.float32)
 f[ifo + '/times'] = numpy.array(times, dtype=numpy.uint32)
 f[ifo + '/dq_input_vals'] = numpy.array(log_like_vals, dtype=numpy.float32)
-f.attrs.create('stat', data=ifo+'-idq_ts_reference')
-f.attrs.create('dq_type', data='idq')
+f.attrs.create('stat', data=ifo+'-'+args.dq_type+'-dq_ts_reference')
 f.close()
 
 logging.info('Done!')

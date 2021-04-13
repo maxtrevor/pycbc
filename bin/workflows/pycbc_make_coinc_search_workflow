@@ -195,12 +195,16 @@ insps = wf.merge_single_detector_hdf_files(workflow, hdfbank,
 # 'dqfiles' is the subset of files containing data quality information
 statfiles = []
 dqfiles = []
-idq_files = wf.setup_idq_reranking(workflow, insps, hdfbank,
-                                   analyzable_segs, analyzable_file, 
-                                   output_dir='idq',
-                                   tags=['full_data'])
-statfiles += idq_files
-dqfiles += idq_files
+dqfile_labels = []
+dq_labels = workflow.cp.get_subsections('workflow-data_quality')
+for dq_label in dq_labels:
+    dq_label_files = wf.setup_dq_reranking(workflow, insps, hdfbank,
+                                       analyzable_segs, analyzable_file, 
+                                       output_dir='dq',
+                                       tags=['full_data'])
+    statfiles += dq_label_files
+    dqfiles += dq_label_files
+    dqfile_labels += len(dq_label_files) * [dq_label]
 statfiles += wf.setup_trigger_fitting(workflow, insps, hdfbank,
                                       final_veto_file, final_veto_name,
                                       output_dir=output_dir,
@@ -524,17 +528,17 @@ for key in final_bg_files:
 #################### Plotting of data quality results #########################
 
 # DQ log likelihood plots
-for dqf in dqfiles:
-    outdir = rdir['data_quality/%s_trigger_rates' % dqf.ifo]
-    wf.make_dq_trigger_rate_plot(workflow, [dqf], outdir, tags=['full_data'])
+for dqf,dql in zip(dqfiles,dqfile_labels):
+    outdir = rdir['data_quality/%s_trigger_rates_%s' % (dqf.ifo,dql)]
+    wf.make_dq_trigger_rate_plot(workflow, [dqf], outdir, tags=[dql,'full_data'])
 
-    outdir = rdir['data_quality/%s_percentiles' % dqf.ifo]
-    wf.make_dq_percentile_plot(workflow, [dqf], outdir, tags=['full_data'])
+    outdir = rdir['data_quality/%s_percentiles_%s' % (dqf.ifo,dql)]
+    wf.make_dq_percentile_plot(workflow, [dqf], outdir, tags=[dql,'full_data'])
 
 # DQ background binning plot
-if workflow.cp.has_option_tags('bin_trigger_rates_idq', 'background-bins',
+if workflow.cp.has_option_tags('workflow-data_quality', 'background-bins',
                                 tags=None):
-    background_bins = workflow.cp.get_opt_tags('bin_trigger_rates_idq',
+    background_bins = workflow.cp.get_opt_tags('bin_trigger_rates_dq',
                                                'background-bins',tags=None)
     bank_tags = workflow.cp.get_subsections('plot_bank')
     if len(bank_tags) == 0: bank_tags=['bank']
