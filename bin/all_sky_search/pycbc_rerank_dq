@@ -28,7 +28,7 @@ times = numpy.array([])
 for filename in args.input_file:
     logging.info('Reading file %s...'%filename)
     g = h5py.File(filename, 'r')
-    g_log_like = g[ifo + '/log_likelihood'][:]
+    g_log_like = g[ifo + '/dq_val'][:]
     g_times = g[ifo + '/times'][:]
     g.close()
     log_like = numpy.concatenate((log_like,g_log_like))

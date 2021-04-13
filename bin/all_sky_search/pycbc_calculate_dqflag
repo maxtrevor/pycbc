@@ -56,9 +56,9 @@ dq = make_dq_ts(segs, args.cat2_segments, ifo, flag)
 f = h5py.File(args.output_file, 'w')
 start, end = [dq[1][0]], [dq[1][-1]]
 
-f[ifo + flag + '/start_time'] = numpy.array(start, dtype=numpy.uint32)
-f[ifo + flag + '/end_time'] = numpy.array(end, dtype=numpy.uint32)
-f[ifo + flag + '/flag'] = numpy.array(dq[0], dtype=numpy.uint32)
-f[ifo + flag + '/times'] = numpy.array(dq[1], dtype=numpy.uint32)
+f[ifo + '/start_time'] = numpy.array(start, dtype=numpy.uint32)
+f[ifo + '/end_time'] = numpy.array(end, dtype=numpy.uint32)
+f[ifo + '/dq_val'] = numpy.array(dq[0], dtype=numpy.uint32)
+f[ifo + '/times'] = numpy.array(dq[1], dtype=numpy.uint32)
 
 logging.info('Done!')

@@ -61,61 +61,116 @@ class PyCBCBinTriggerRatesDQExecutable(Executable):
         node.add_input_list_opt('--dq-file', dq_files)
         node.new_output_file_opt(workflow.analysis_time,'.hdf', '--output-file')
         return node
+
+class PyCBCCalculateDQFlagExecutable(Executable):
+    # current_retention_level = Executable.ALL_TRIGGERS
+    current_retention_level = Executable.MERGED_TRIGGERS
+
+    def create_node(self, workflow, seg_file, cat2_file, flag):
+        node = Node(self)
+        # Executable objects are initialized with ifo information
+        node.add_opt('--ifo', self.ifo_string)
+        node.add_opt('--flag', flag)
+        node.add_input_opt('--science-segments', seg_file)
+        node.add_input_opt('--cat2-segments', cat2_file)
+        node.new_output_file_opt(workflow.analysis_time, '.hdf',
+                                 '--output-file')
+        return node
     
 def setup_dq_reranking(workflow, dq_label, insps, bank,
-                        segs, analyzable_file, 
+                        segs, analyzable_file, cat2_file, 
                         output_dir=None, tags=None):
+    output = FileList()
     if tags:
         dq_tags = tags + [dq_label]
     else:
         dq_tags = [dq_label]
-    datafind_files, dq_file, dq_segs, dq_name = \
-                                       setup_datafind_workflow(workflow,
-                                       segs, "datafind_dq",
-                                       seg_file=analyzable_file,
-                                       tags=dq_tags)
-    output = FileList()
-    for ifo in workflow.ifos:
-        
-        ifo_insp = [insp for insp in insps if (insp.ifo == ifo)]
-        assert len(ifo_insp)==1
-        ifo_insp = ifo_insp[0]
-        
-        dq_files = FileList()
-        for seg in dq_segs[ifo]:
-            seg_frames = datafind_files.find_all_output_in_range(ifo, seg)
-            raw_exe  = PyCBCCalculateiDQExecutable(workflow.cp,
-                                               'calculate_dq', ifos=ifo,
-                                               out_dir=output_dir,
-                                               tags=dq_tags)
-            raw_node = raw_exe.create_node(seg, seg_frames)
-            workflow += raw_node
-            dq_files += raw_node.output_files
+    dq_type =  workflow.cp.get_opt_tags("workflow-data_quality",
+                                         'dq-type', [dq_type])
+    if dq_type == 'timeseries':
+        if dq_label not in workflow.cp.get_subsections('workflow-datafind'):
+            msg = """No workflow-datafind section with dq tag.
+              Tags must be used in workflow-datafind sections "
+              if more than one source of data is used.
+              Strain data source must be tagged 
+              workflow-datafind-hoft.
+              Consult the documentation for more info."""
+            raise ValueError(msg)
+        datafind_files, dq_file, dq_segs, dq_name = \
+                                           setup_datafind_workflow(workflow,
+                                           segs, "datafind_dq",
+                                           seg_file=analyzable_file,
+                                           tags=dq_tags)
+        for ifo in workflow.ifos:
             
+            ifo_insp = [insp for insp in insps if (insp.ifo == ifo)]
+            assert len(ifo_insp)==1
+            ifo_insp = ifo_insp[0]
+            
+            dq_files = FileList()
+            for seg in dq_segs[ifo]:
+                seg_frames = datafind_files.find_all_output_in_range(ifo, seg)
+                raw_exe  = PyCBCCalculateDQExecutable(workflow.cp,
+                                                   'calculate_dq', ifos=ifo,
+                                                   out_dir=output_dir,
+                                                   tags=dq_tags)
+                raw_node = raw_exe.create_node(seg, seg_frames)
+                workflow += raw_node
+                dq_files += raw_node.output_files
+                
+            intermediate_exe = PyCBCBinTriggerRatesiDQExecutable(workflow.cp,
+                                                   'bin_trigger_rates_dq', ifos=ifo,
+                                                   out_dir=output_dir,
+                                                   tags=dq_tags)
+            intermediate_node = intermediate_exe.create_node(workflow, ifo, dq_files, 
+                                                             ifo_insp, bank)
+            workflow += intermediate_node
+            binned_rate_file = intermediate_node.output_file
+            
+            new_exe = PyCBCRerankDQExecutable(workflow.cp,
+                                                   'rerank_dq', ifos=ifo,
+                                                   out_dir=output_dir,
+                                                   tags=dq_tags)
+            new_node = new_exe.create_node(workflow, ifo, dq_label, 
+                                           dq_files, binned_rate_file)
+            workflow += new_node
+            output += new_node.output_files
+    elif dq_type == 'flag':
+        flag_str = workflow.cp.get_opt_tags("workflow-segments",
+                                            'flag_name', dq_tags)
+        ifo = flag_str[:2]
+        flag_name = flag_str
+        logging.info("Creating job for flag %s" % (flag_name))
+        raw_exe = PyCBCCalculateDQFlagExecutable(workflow.cp,
+                                             'calculate_dqflag', ifos=ifo,
+                                             out_dir=output_dir,
+                                             tags=dq_tags)
+        raw_node = raw_exe.create_node(workflow, analyzable_file, cat2_file,
+                                       flag_name)
+        workflow += raw_node
+        dq_files = raw_node.output_files
         intermediate_exe = PyCBCBinTriggerRatesiDQExecutable(workflow.cp,
                                                'bin_trigger_rates_dq', ifos=ifo,
                                                out_dir=output_dir,
                                                tags=dq_tags)
-        intermediate_node = intermediate_exe.create_node(workflow, ifo, dq_files, 
+        intermediate_node = intermediate_exe.create_node(workflow, ifo, dq_files,
                                                          ifo_insp, bank)
         workflow += intermediate_node
         binned_rate_file = intermediate_node.output_file
-        
-        new_exe = PyCBCRerankiDQExecutable(workflow.cp,
+
+        new_exe = PyCBCRerankDQExecutable(workflow.cp,
                                                'rerank_dq', ifos=ifo,
                                                out_dir=output_dir,
                                                tags=dq_tags)
-        new_node = new_exe.create_node(workflow, ifo, dq_label, 
+        new_node = new_exe.create_node(workflow, ifo, dq_label,
                                        dq_files, binned_rate_file)
         workflow += new_node
         output += new_node.output_files
-    #else:
-    #    msg = """No workflow-datafind section with dq tag.
-    #          Tags must be used in workflow-datafind sections "
-    #          if more than one source of data is used.
-    #          Strain data source must be tagged 
-    #          workflow-datafind-hoft.
-    #          Consult the documentation for more info."""
-    #    raise ValueError(msg)
+    else:
+        msg = """Incorrect DQ type specified.
+              Only valid DQ types are 'flag'
+              and 'timeseries'.
+              Consult the documentation for more info."""
+        raise ValueError(msg)
                
     return output

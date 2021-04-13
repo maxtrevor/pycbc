@@ -80,7 +80,7 @@ dq_logl = np.array([])
 for filename in args.dq_file:
     logging.info('Reading DQ file %s...'%filename)
     g = h5.File(filename, 'r')
-    g_logl = g[ifo + '/log_likelihood'][:]
+    g_logl = g[ifo + '/dq_val'][:]
     g_times = g[ifo + '/times'][:]
     g.close()
     dq_logl = np.concatenate((dq_logl,g_logl))
