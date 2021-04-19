@@ -125,9 +125,8 @@ if args.prune_number>0:
     keep = np.nonzero(stat)[0]
     trig_times = trig_times[keep]
     trig_ids = trig_ids[keep]
-     
-del stat
-del keep
+    del stat
+    del keep
                
 f = h5.File(args.output_file,'w')        
 for bin_name in locs_names:
