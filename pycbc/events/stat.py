@@ -1761,15 +1761,18 @@ class DQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
         self.dq_bin_by_id = {}        
         for k in self.files.keys():
             parsed_attrs = k.split('-')
-            ifo = parsed_attrs[0]
-            dq_type = parsed_attrs[1]
-            dq_vals = self.assign_dq_val(k)
-            dq_bins = self.assign_bin_id(k)
-            if ifo not in self.dq_val_by_time:
-                self.dq_val_by_time[ifo]={}
-                self.dq_bin_by_id[ifo]={}
-            self.dq_val_by_time[ifo][dq_type]=dq_vals
-            self.dq_bin_by_id[ifo][dq_type]=dq_bins
+            if len(parsed_attrs) < 3:
+                continue
+            if parsed_attrs[2] == 'dq_ts_reference': 
+                ifo = parsed_attrs[0]
+                dq_type = parsed_attrs[1]
+                dq_vals = self.assign_dq_val(k)
+                dq_bins = self.assign_bin_id(k)
+                if ifo not in self.dq_val_by_time:
+                    self.dq_val_by_time[ifo]={}
+                    self.dq_bin_by_id[ifo]={}
+                self.dq_val_by_time[ifo][dq_type]=dq_vals
+                self.dq_bin_by_id[ifo][dq_type]=dq_bins
             
 #        parsed_attrs = [f.split('-') for f in self.files.keys()]
 #        self.bg_ifos_dq = [at[0] for at in parsed_attrs if
@@ -1829,7 +1832,7 @@ class DQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
                 else:
                     bin_name = self.dq_bin_by_id[ifo][k][tnum[i]]
                 val = self.dq_val_by_time[ifo][k][bin_name][int(t)]
-                dq_val[i]=numpy.max(dq_val[i],val)
+                dq_val[i]=max(dq_val[i],val)
         return dq_val
 
     def lognoiserate(self, trigs):
