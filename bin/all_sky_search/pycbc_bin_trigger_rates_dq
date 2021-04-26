@@ -52,7 +52,7 @@ if args.background_bins:
     locs_names = [b.split(':')[0] for b in args.background_bins]
 else:
     locs_dict = {'all_bin': np.arange(0, len(bank['mass1'][:]), 1)}
-    locs_name = ['all_bin']
+    locs_names = ['all_bin']
 
 logging.info('Reading trigger file...')
 ifo = args.ifo
