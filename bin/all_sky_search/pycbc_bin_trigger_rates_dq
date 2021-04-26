@@ -70,6 +70,8 @@ if args.stat_threshold or args.prune_number>0:
         trig_times = trig_times[abovethresh]
         stat = stat[abovethresh]
         del abovethresh
+    if args.prune_number<1:
+        del stat
 trig_file.close()
 
 trig_times_int = trig_times.astype('int')
