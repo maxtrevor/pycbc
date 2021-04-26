@@ -38,7 +38,7 @@ log_like_ranking = numpy.argsort(log_like)
 len_log_like = len(log_like)
 
 times = times[log_like_ranking]
-log_like_vals = log_like[log_like_ranking]
+log_like_vals = numpy.array(log_like[log_like_ranking])
 
 log_like_dict = {}
 percent_dict = {}
@@ -59,22 +59,29 @@ if args.rate_file is not None:
             log_like_dict[bin_name] = numpy.zeros(len(log_like))
             
             if not args.no_low_dq_cutoff:
-                rates = [max(r,1.) for r in rates]
+                rates = numpy.array([max(r,1.) for r in rates])
 
             log_rates = numpy.log(rates)
             percent_dict[bin_name] = log_rates
 
-            l = len(log_rates)
-            x = int(len_log_like/l)
+            #l = len(log_rates)
+            #x = int(len_log_like/l)
+            n_bins = len(log_rates)
+            percentiles = numpy.linspace(0,100,n_bins+1)
+            dq_percentiles = numpy.percentile(log_like_vals,percentiles)[:-1]
 
-            seg_lens = numpy.ones(l,dtype=int)*x
-            excess = len_log_like - l*x
-            seg_lens[-excess:]=seg_lens[-excess:]+1
+            rates_bin = numpy.array([len(dq_percentiles[dq_percentiles <= dq_ll])-1 for dq_ll in log_like_vals]) 
+            log_like_dict[bin_name] = log_rates[rates_bin.astype('int')]
+            print(log_like_dict[bin_name][-20:])
 
-            count = 0
-            for i in range(l):
-                log_like_dict[bin_name][count:count+seg_lens[i]]=log_rates[i]
-                count = count+seg_lens[i]
+            #seg_lens = numpy.ones(l,dtype=int)*x
+            #excess = len_log_like - l*x
+            #seg_lens[-excess:]=seg_lens[-excess:]+1
+
+            #count = 0
+            #for i in range(l):
+            #    log_like_dict[bin_name][count:count+seg_lens[i]]=log_rates[i]
+            #    count = count+seg_lens[i]
         f.close()
         
     else: logging.error('Could not find binned trigger rates file')

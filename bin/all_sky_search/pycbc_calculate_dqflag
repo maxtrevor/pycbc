@@ -48,8 +48,13 @@ def make_dq_ts(segs, cat2_segs, ifo, flag):
 ifo = args.ifo
 flag = args.flag
 
+flag_list = flag.split(':')
+if len(flag_list)>1:
+    flag = flag_list[1]
+
 # Get science segments from file
-segs = SegFile.from_segment_xml(args.science_segments).segment_dict["%s:science" % ifo]
+# to do: make this a configurable option
+segs = SegFile.from_segment_xml(args.science_segments).segment_dict["%s:SCIENCE_AVAILABLE" % ifo]
 # Create data quality time series
 dq = make_dq_ts(segs, args.cat2_segments, ifo, flag)
 

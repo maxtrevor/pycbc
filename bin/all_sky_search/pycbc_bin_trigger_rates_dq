@@ -69,6 +69,7 @@ if args.stat_threshold or args.prune_number>0:
         trig_ids = trig_ids[abovethresh]
         trig_times = trig_times[abovethresh]
         stat = stat[abovethresh]
+        del abovethresh
 trig_file.close()
 
 trig_times_int = trig_times.astype('int')
@@ -88,27 +89,26 @@ for filename in args.dq_file:
 del g_logl
 del g_times
 
+# todo: make this configurable
 percent_bin = 0.5
 n_bins = int(100./percent_bin)
 percentiles = np.linspace(0,100,n_bins+1)
 bin_times = np.zeros(n_bins)
-dq_percentiles = np.percentile(dq_logl,percentiles)
+dq_percentiles = np.percentile(dq_logl,percentiles)[:-1]
 
     
 # seconds bin tells what bin each second ends up
-seconds_bin = [len(dq_percentiles[dq_percentiles < dq_ll]) for dq_ll in dq_logl]
+seconds_bin = np.array([len(dq_percentiles[dq_percentiles <= dq_ll]) for dq_ll in dq_logl])
+del dq_percentiles
 
-# bin times tells how much time ends up in each bin. Set any bin with zero seconds to 1 second
-# to avoid divide by zero error when calculating rates
-bin_times = [len(seconds_bin[seconds_bin==(i+1)]) for i in range(n_bins)]
-bin_times[bin_times==0]=1
+# bin times tells how much time ends up in each bin
+bin_times = np.array([len(seconds_bin[seconds_bin==(i+1)]) for i in range(n_bins)]).astype('float')
+full_time = float(len(seconds_bin))
+del dq_logl
 
 # create a dict to look up dq percentile at any time
 dq_percentiles_time = dict(zip(dq_times, seconds_bin*percent_bin/100))
-
 del dq_times
-del dq_logl
-del dq_percentiles
                
 if args.prune_number>0:
     for bin_name in locs_names:
@@ -135,12 +135,17 @@ f = h5.File(args.output_file,'w')
 for bin_name in locs_names:
     bin_locs = locs_dict[bin_name]
     trig_times_bin = trig_times_int[np.isin(trig_ids, bin_locs)] 
-    trig_percentile = [dq_percentiles_time[t] for t in trig_times_bin]
+    trig_percentile = np.array([dq_percentiles_time[t] for t in trig_times_bin])
     logging.info('Processing %d triggers...'%len(trig_percentile))
-               
-    (counts, bins) = np.histogram(trig_percentile, bins = percentiles/100.)
-    rates = counts/bin_times
-    rates/=np.mean(rates)
+    
+    (counts, bins) = np.histogram(trig_percentile, bins = (percentiles+percent_bin)/100)
+    counts = counts.astype('float')
+    rates = np.zeros(len(bin_times))
+    times_nz = (bin_times > 0)
+    rates[times_nz] = counts[times_nz]/bin_times[times_nz]
+    mean_rate = len(trig_percentile) / full_time
+    if mean_rate > 0.:
+        rates = rates / mean_rate
     
     logging.info('Writing rates to output file %s...'%args.output_file)
     grp = f.create_group(bin_name)

@@ -1503,15 +1503,20 @@ def get_flag_segments_file(workflow, name, option_name, out_dir):
 
     segs = {}
     for ifo in workflow.ifos:
-        flag_str = cp.get_opt_tags("workflow-segments", option_name, [ifo])
-        flag_list = flag_str.split(',')
-        for flag in flag_list:
-            flag_name = flag[1:]
-            key = ifo + ':' + flag_name
-            segs[key] = query_str(ifo, flag, start, end,
-                                  source=source, server=server,
-                                  veto_definer=veto_definer)
-            logging.info("%s: got %s segments", ifo, flag_name)
+        if cp.has_option_tags("workflow-segments", option_name, [ifo]):
+             flag_str = cp.get_opt_tags("workflow-segments", option_name, [ifo])
+             flag_list = flag_str.split(',')
+             for flag in flag_list:
+                 flag_name = flag[1:]
+                 key = flag_name
+                 if len(key.split(':')) > 2:
+                     key = ':'.join(key.split(':')[:2])
+                 segs[key] = query_str(ifo, flag, start, end,
+                                       source=source, server=server,
+                                       veto_definer=veto_definer)
+                 logging.info("%s: got %s segments", ifo, flag_name)
+        else:
+            logging.info("%s: no segments requested", ifo)
 
     return SegFile.from_segment_list_dict(name, segs,
                                           extension='.xml',

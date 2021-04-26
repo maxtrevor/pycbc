@@ -198,7 +198,7 @@ dqfiles = []
 dqfile_labels = []
 dq_labels = workflow.cp.get_subsections('workflow-data_quality')
 for dq_label in dq_labels:
-    dq_label_files = wf.setup_dq_reranking(workflow, insps, hdfbank,
+    dq_label_files = wf.setup_dq_reranking(workflow, dq_label, insps, hdfbank,
                                        analyzable_segs, analyzable_file, 
                                        cat2_file,
                                        output_dir='dq',
