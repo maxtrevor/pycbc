@@ -44,13 +44,11 @@ class MPLSlide(mpld3.plugins.PluginBase):
               var ds = this.zoom.scale() / this.zoom.last_s;
               this.zoom_x.translate([ this.zoom_x.translate()[0] + dt0, 0 ]);
               this.zoom_x.scale(this.zoom_x.scale() * ds);
-
               this.zoom.last_t = this.zoom.translate();
               this.zoom.last_s = this.zoom.scale();
               this.sharex.forEach(function(ax) {
                 ax.zoom_x.translate(this.zoom_x.translate()).scale(this.zoom_x.scale());
               }.bind(this));
-
               this.sharex.forEach(function(ax) {
                 ax.zoomed(false);
               });
@@ -59,7 +57,6 @@ class MPLSlide(mpld3.plugins.PluginBase):
               this.elements[i].zoomed();
             }
           };
-
             mpld3.ZoomPlugin = mpld3_ZoomPlugin;
             mpld3.register_plugin("zoom", mpld3_ZoomPlugin);
             mpld3_ZoomPlugin.prototype = Object.create(mpld3.Plugin.prototype);

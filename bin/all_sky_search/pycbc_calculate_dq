@@ -1,64 +1,77 @@
 #!/usr/bin/env python
-
+""" Ingest and cluster iDQ data
 """
-    Convert veto definer into timeseries
-"""
-
-import logging, argparse, numpy, h5py
-import pycbc
+import logging, argparse, numpy, h5py, multiprocessing, time, copy
+from six.moves import (range, zip_longest)
+import pycbc, pycbc.psd, pycbc.strain, pycbc.events
 from pycbc.version import git_verbose_msg as version
 from pycbc.fft.fftw import set_measure_level
-from pycbc.events import veto
-from pycbc.workflow import SegFile
+from pycbc.workflow import resolve_td_option
+from ligo.segments import segmentlist, segment
 set_measure_level(0)
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--version', action='version', version=version)
 parser.add_argument('--verbose', action="store_true")
-parser.add_argument('--science-segments', required=True)
-parser.add_argument('--cat2-segments', required=True)
-parser.add_argument('--flag', type=str, required=True)
-parser.add_argument('--ifo', type=str, required=True)
-parser.add_argument('--output-file', required=True)
+parser.add_argument("--dq-sample-rate", default=1, type=int)
+parser.add_argument("--gps-start-time", type=int,required=True)
+parser.add_argument("--gps-end-time", type=int,required=True)
+parser.add_argument("--output-file", required=True)
+
+pycbc.strain.insert_strain_option_group(parser, gps_times=False)
+parser.set_defaults(pad_data=0)
 
 args = parser.parse_args()
 pycbc.init_logging(args.verbose)
 
-
-def make_dq_ts(segs, cat2_segs, ifo, flag):
-    """ Create a data quality timeseries
+def get_dq(seg):
+    """ Get the PSDs for the given data chunck. This follows the same rules
+    as pycbc_inspiral for determining where to calculate PSDs
     """
-    logging.info('Creating data quality timeseries for flag %s', 
-                 flag)
-    # Keep just times which belong to science_segments
-    dq_times = numpy.concatenate([numpy.arange(float(seg[0]), float(seg[1])).astype(int)
-                                  for seg in segs])
-    dq = numpy.zeros(len(dq_times))
-    # Identify times within segments for the chosen flag
-    indexes, _ = veto.indices_within_segments(dq_times, [cat2_segs], ifo=ifo,
-                                              segment_name=flag)
-    if indexes.size:
-        dq[indexes] = 1
-    else:
-        logging.warning('Veto definer segment list is empty for flag %s-%s',
-                        ifo, flag)
-    return dq, dq_times
+    
+    logging.info('Getting dq values for %.1f-%.1f (%.1f s)', seg[0],
+                 seg[1], abs(seg[1]-seg[0]))
+    argstmp = copy.deepcopy(args)
+    argstmp.gps_start_time = int(seg[0])
+    argstmp.gps_end_time = int(seg[1])
+    tmp_segment = segment([argstmp.gps_start_time, argstmp.gps_end_time])
+    argstmp.channel_name = resolve_td_option(args.channel_name, tmp_segment)
+
+    # This helps when the filesystem is unreliable, and gives extra retries.
+    # python has an internal limit of ~100 (it is not infinite)
+    try:
+        gwstrain = pycbc.strain.from_cli(argstmp)
+    except RuntimeError:
+        time.sleep(10)
+        return get_dq(seg)
+
+    logging.info('Normalizing dq values for %.1f-%.1f (%.1f s)', seg[0],
+                 seg[1], abs(seg[1]-seg[0]))
+
+    dq_sample_rate = float(args.dq_sample_rate) 
+    dq_step_size = gwstrain.sample_rate/dq_sample_rate
+
+    # maximize gwstrain over 1 sec interval
+    max_dq = numpy.array([max(gwstrain.numpy()[int(n*dq_step_size):int((n+1)*dq_step_size)])
+               for n in numpy.arange(0,len(gwstrain.numpy())/dq_step_size)])
 
 
-ifo = args.ifo
-flag = args.flag
+    # figure out list of times
+    times_dq = numpy.arange(gwstrain.start_time,gwstrain.end_time,1./dq_sample_rate)
 
-# Get science segments from file
-segs = SegFile.from_segment_xml(args.science_segments).segment_dict["%s:science" % ifo]
-# Create data quality time series
-dq = make_dq_ts(segs, args.cat2_segments, ifo, flag)
+    return max_dq, times_dq
+
+ifo = args.channel_name[0:2]
+
+dq = get_dq((args.gps_start_time,args.gps_end_time))
 
 f = h5py.File(args.output_file, 'w')
-start, end = [dq[1][0]], [dq[1][-1]]
+start, end = [args.gps_start_time], [args.gps_end_time]
 
-f[ifo + flag + '/start_time'] = numpy.array(start, dtype=numpy.uint32)
-f[ifo + flag + '/end_time'] = numpy.array(end, dtype=numpy.uint32)
-f[ifo + flag + '/flag'] = numpy.array(dq[0], dtype=numpy.uint32)
-f[ifo + flag + '/times'] = numpy.array(dq[1], dtype=numpy.uint32)
+f[ifo + '/start_time'] = numpy.array(start, dtype=numpy.uint32)
+f[ifo + '/end_time'] = numpy.array(end, dtype=numpy.uint32)
+f[ifo + '/dq_val'] = numpy.array(dq[0], dtype=numpy.float32)
+f[ifo + '/times'] = numpy.array(dq[1], dtype=numpy.uint32)
 
 logging.info('Done!')
+

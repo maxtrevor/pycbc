@@ -39,7 +39,7 @@ else:
 
 xvals = numpy.linspace(0,100,len(yvals)+1)
 centers = (xvals[1:] + xvals[:-1]) / 2
-dq_name = f.attrs['dq_type'] 
+dq_name = f.attrs['stat'].split('-')[0] 
 
 xmax = float(args.x_max)
 xmin = float(args.x_min)

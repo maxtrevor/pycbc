@@ -24,6 +24,7 @@ args = parser.parse_args()
 
 pycbc.init_logging(args.verbose)
 
+
 ifo = args.ifo
 
 f = h5py.File(args.dq_file, 'r')
@@ -35,9 +36,9 @@ if bin_name not in f['%s/dq_vals'%ifo].keys():
 else:
     yvals = f['%s/dq_vals/%s'%(ifo,bin_name)][:]
 
-print(max(yvals))
 xvals = f['%s/times'%ifo][:]
-dq_name = f.attrs['dq_type'] 
+dq_name = f.attrs['stat'].split('-')[0]
+#dq_name = f.attrs['dq_type'] 
 
 xmax = max(xvals) + 0.2 * (max(xvals)-min(xvals))
 xmin = min(xvals) - 0.2 * (max(xvals)-min(xvals))
@@ -50,7 +51,7 @@ color = pycbc.results.ifo_color(ifo)
 fig = pyplot.figure(0)
 ax = fig.add_subplot(111)
 
-ax.scatter(xvals,yvals,
+ax.scatter(xvals[yvals>0],yvals[yvals>0],
                label=' '.join([ifo,dq_name,bin_name]), edgecolor='none', 
                s=1, color=color)
 ax.legend(loc='upper left', markerscale=5)
@@ -67,14 +68,11 @@ ax.set_xlim(xmin=xmin,xmax=xmax)
 ax.grid()
 
 yticks = ax.get_yticks()
-print(yticks)
 
 # add second axis
 ax2=ax.twinx()
 ax2_ymax = numpy.exp(ymax)
 ax2.set_ylim(1,ax2_ymax)
-#print(10**ymax)
-#print(numpy.arange(0,numpy.ceil(ymax),1))
 #ytick_exp = numpy.arange(0,numpy.ceil(ymax),1)
 #ax2.set_yticks([10**e for e in ytick_exp])
 ax2.plot(xmax+1e9,100)
@@ -86,8 +84,10 @@ ax2.set_xlim(xmin, xmax)
 ax2.set_yscale('log')
 
 # add meta data and save figure
+fig_kwds = {}
 pycbc.results.save_fig_with_metadata(fig, args.output_file,
-                title = '%s: %s log likelihood versus time' % (ifo, dq_name),
+                fig_kwds=fig_kwds,
+                title = '%s %s log likelihood versus time' % (ifo, dq_name),
                 caption = 'The log likelihood verus time of a DQ product.',
                 cmd = ' '.join(sys.argv))
 

@@ -507,10 +507,10 @@ def make_dq_trigger_rate_plot(workflow, dq_files, out_dir, exclude=None,
     files = FileList([])
     for tag in secs:
         for dq_file in dq_files:
-            if workflow.cp.has_option_tags('bin_trigger_rates_idq', 
+            if workflow.cp.has_option_tags('bin_trigger_rates_dq', 
                                            'background-bins', tags=tags):
                 background_bins = \
-                              workflow.cp.get_opt_tags('bin_trigger_rates_idq',
+                              workflow.cp.get_opt_tags('bin_trigger_rates_dq',
                                                   'background-bins', tags=tags)
                 bin_names = [tuple(bbin.split(':'))[0] for bbin 
                                                  in background_bins.split(' ')]
@@ -538,10 +538,10 @@ def make_dq_percentile_plot(workflow, dq_files, out_dir, exclude=None,
     files = FileList([])
     for tag in secs:
         for dq_file in dq_files:
-            if workflow.cp.has_option_tags('bin_trigger_rates_idq',
+            if workflow.cp.has_option_tags('bin_trigger_rates_dq',
                                            'background-bins', tags=tags):
                 background_bins = \
-                              workflow.cp.get_opt_tags('bin_trigger_rates_idq',
+                              workflow.cp.get_opt_tags('bin_trigger_rates_dq',
                                                   'background-bins', tags=tags)
                 bin_names = [tuple(bbin.split(':'))[0] for bbin
                                                  in background_bins.split(' ')]
