@@ -121,9 +121,9 @@ if args.prune_number>0:
     
         for j in range(args.prune_number):        
             max_stat_arg = np.argmax(trig_stats_bin)
-            remove = np.nonzero(abs(trig_times_bin[max_val_arg] - trig_times_int)
+            remove = np.nonzero(abs(trig_times_bin[max_stat_arg] - trig_times_int)
                                < args.prune_window)[0]
-            remove_inbin = np.nonzero(abs(trig_times_bin[max_val_arg] - trig_times_bin_int)
+            remove_inbin = np.nonzero(abs(trig_times_bin[max_stat_arg] - trig_times_bin_int)
                                < args.prune_window)[0]
             stat[remove] = 0
             trig_stats_bin[remove_inbin] = 0
