@@ -75,7 +75,6 @@ if args.stat_threshold or args.prune_number>0:
 trig_file.close()
 
 trig_times_int = trig_times.astype('int')
-del trig_times
 
 dq_times = np.array([])
 dq_logl = np.array([])
@@ -116,14 +115,14 @@ if args.prune_number>0:
     for bin_name in locs_names:
         logging.info('Processing bin %s...'%bin_name)
         bin_locs = locs_dict[bin_name]
-        trig_times_bin = trig_times_int[np.isin(trig_ids, bin_locs)] 
+        trig_times_bin = trig_times[np.isin(trig_ids, bin_locs)] 
         trig_stats_bin = stat[np.isin(trig_ids, bin_locs)]
     
         for j in range(args.prune_number):        
             max_stat_arg = np.argmax(trig_stats_bin)
-            remove = np.nonzero(abs(trig_times_bin[max_stat_arg] - trig_times_int)
+            remove = np.nonzero(abs(trig_times_bin[max_stat_arg] - trig_times)
                                < args.prune_window)[0]
-            remove_inbin = np.nonzero(abs(trig_times_bin[max_stat_arg] - trig_times_bin_int)
+            remove_inbin = np.nonzero(abs(trig_times_bin[max_stat_arg] - trig_times_bin)
                                < args.prune_window)[0]
             stat[remove] = 0
             trig_stats_bin[remove_inbin] = 0
@@ -132,6 +131,8 @@ if args.prune_number>0:
     trig_ids = trig_ids[keep]
     del stat
     del keep
+
+del trig_times
                
 f = h5.File(args.output_file,'w')        
 for bin_name in locs_names:
