@@ -68,9 +68,9 @@ if args.rate_file is not None:
             #x = int(len_log_like/l)
             n_bins = len(log_rates)
             percentiles = numpy.linspace(0,100,n_bins+1)
-            dq_percentiles = numpy.percentile(log_like_vals,percentiles)[:-1]
+            dq_percentiles = numpy.percentile(log_like_vals,percentiles)[1:]
 
-            rates_bin = numpy.array([len(dq_percentiles[dq_percentiles <= dq_ll])-1 for dq_ll in log_like_vals]) 
+            rates_bin = numpy.array([n_bins - len(dq_percentiles[dq_percentiles >= dq_ll]) for dq_ll in log_like_vals]) 
             log_like_dict[bin_name] = log_rates[rates_bin.astype('int')]
             print(log_like_dict[bin_name][-20:])
 
