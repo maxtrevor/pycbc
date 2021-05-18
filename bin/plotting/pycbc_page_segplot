@@ -160,10 +160,10 @@ for segment_file in opts.segment_files:
                     """ % (segment_name, s, e, e-s)
 
                     # add tooltip for segment
-                    #if len(line_collections) < 1:
-                    #    mpld3.plugins.connect(fig, mpld3.plugins.LineHTMLTooltip(l[0], label))
-                    #else:
-                    #    mpld3.plugins.connect(fig, LineTooltip(l[0], label))
+                    if len(line_collections) < 1:
+                        mpld3.plugins.connect(fig, mpld3.plugins.LineHTMLTooltip(l[0], label))
+                    else:
+                        mpld3.plugins.connect(fig, LineTooltip(l[0], label))
 
                 # add name to list
                 names += [ifo+':'+segment_name]
@@ -197,8 +197,8 @@ fig.subplots_adjust(left=0.0, right=0.8, top=0.9, bottom=0.1)
 # add plugins to the plot
 mpld3.plugins.connect(fig, mpld3.plugins.MousePosition(fontsize=14, fmt='10f'))
 mpld3.plugins.connect(fig, mpld3.plugins.BoxZoom())
-#mpld3.plugins.connect(fig, mpld3.plugins.Zoom())
-mpld3.plugins.connect(fig, MPLSlide())
+mpld3.plugins.connect(fig, mpld3.plugins.Zoom())
+#mpld3.plugins.connect(fig, MPLSlide())
 mpld3.plugins.connect(fig, mpld3.plugins.Reset())
 
 # save the plot as an interactive HTML

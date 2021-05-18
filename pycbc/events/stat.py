@@ -1810,6 +1810,7 @@ class DQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
         for bin_name in bin_names:
             dq_vals = dq_file[ifo+'/dq_vals/'+bin_name][:]
             dq_dict[bin_name] = dict(zip(times,dq_vals))
+            #print(key,bin_name,dq_vals)
         return dq_dict
 
     def find_dq_val(self, trigs):
@@ -1825,14 +1826,15 @@ class DQExpFitSGFgBgNormStatistic(ExpFitSGFgBgNormStatistic):
             # Should be exactly one ifo provided
             ifo = self.ifos[0]
         dq_val = numpy.zeros(len(time))        
-        for (i,t) in enumerate(time):
-            for k in self.dq_val_by_time[ifo].keys():
-                if isinstance(tnum,int):
-                    bin_name = self.dq_bin_by_id[ifo][k][tnum]
-                else:
-                    bin_name = self.dq_bin_by_id[ifo][k][tnum[i]]
-                val = self.dq_val_by_time[ifo][k][bin_name][int(t)]
-                dq_val[i]=max(dq_val[i],val)
+        if ifo in self.dq_val_by_time:
+            for (i,t) in enumerate(time):
+                for k in self.dq_val_by_time[ifo].keys():
+                    if isinstance(tnum,int):
+                        bin_name = self.dq_bin_by_id[ifo][k][tnum]
+                    else:
+                        bin_name = self.dq_bin_by_id[ifo][k][tnum[i]]
+                    val = self.dq_val_by_time[ifo][k][bin_name][int(t)]
+                    dq_val[i]=max(dq_val[i],val)
         return dq_val
 
     def lognoiserate(self, trigs):

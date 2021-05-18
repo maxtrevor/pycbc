@@ -516,10 +516,12 @@ def make_dq_trigger_rate_plot(workflow, dq_files, out_dir, exclude=None,
                                                  in background_bins.split(' ')]
             else: bin_names = ['all_bin']
             for bbin in bin_names:
+                plot_tags = excludestr([tag], bin_names) + [bbin] + tags
+                plot_tags = list(dict.fromkeys(plot_tags))
                 node = PlotExecutable(workflow.cp, 'plot_dqtriggerrate',
                             ifos=dq_file.ifo,
                             out_dir=out_dir,
-                            tags=[tag] + [bbin] + tags).create_node()
+                            tags=plot_tags).create_node()
                 node.add_opt('--ifo', dq_file.ifo)
                 node.add_opt('--background-bin', bbin)
                 node.add_input_opt('--dq-file', dq_file)
@@ -547,10 +549,12 @@ def make_dq_percentile_plot(workflow, dq_files, out_dir, exclude=None,
                                                  in background_bins.split(' ')]
             else: bin_names = ['all_bin']
             for bbin in bin_names:
+                plot_tags = excludestr([tag], bin_names) + [bbin] + tags
+                plot_tags = list(dict.fromkeys(plot_tags))
                 node = PlotExecutable(workflow.cp, 'plot_dq_percentiles',
                             ifos=dq_file.ifo,
                             out_dir=out_dir,
-                            tags=[tag] + [bbin] + tags).create_node()
+                            tags=plot_tags).create_node()
                 node.add_opt('--ifo', dq_file.ifo)
                 node.add_opt('--background-bin', bbin)
                 node.add_input_opt('--dq-file', dq_file)
